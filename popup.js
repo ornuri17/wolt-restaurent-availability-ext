@@ -22,14 +22,9 @@ track_button.addEventListener("click", async () => {
         restaurants_tracked.innerHTML + Object.keys(restaurants).length > 0
           ? " " + restaurant_name_on_wolt
           : restaurant_name_on_wolt;
+
       restaurants[restaurant_name_on_wolt] = restaurant_details;
-      chrome.storage.local.set({ restaurants }, () => {});
-      chrome.storage.local.get(
-        /* String or Array */ ["restaurents"],
-        function (items) {
-          console.log(items);
-        }
-      );
+      chrome.storage.sync.set({ restaurants: restaurants }, () => {});
       restaurants[restaurant_name_on_wolt]["interval"] = setInterval(
         checkRestaurantAvailablity,
         30 * 1000
@@ -54,23 +49,26 @@ function getRestaurentNameFromURL(url) {
 
 function checkRestaurantAvailablity() {
   console.log("checking availability");
-  chrome.storage.local.get(["restaurents"], async function (items) {
-    for (const restaurant_name_on_wolt of items) {
-      await fetch(
-        "https://restaurant-api.wolt.com/v3/venues/slug/" +
-          restaurant_name_on_wolt
-      )
-        .then(function (response) {
-          // The response is a Response instance.
-          // You parse the data into a useable format using `.json()`
-          return response.json();
-        })
-        .then(function (restaurant_data) {
-          if (restaurant_data.results[0].online) {
-            restaurants[restaurant_name_on_wolt]["interval"] = null;
-            chrome.tabs.sendMessage(tabs[0].id, { restaurant_name_on_wolt });
-          }
-        });
+  chrome.storage.local.get(["restaurants"], async function (results) {
+    let restaurants_names = Object.keys(results.restaurants);
+    if (restaurants_names.length > 0) {
+      for (const restaurant_name_on_wolt of restaurants_names) {
+        await fetch(
+          "https://restaurant-api.wolt.com/v3/venues/slug/" +
+            restaurant_name_on_wolt
+        )
+          .then(function (response) {
+            // The response is a Response instance.
+            // You parse the data into a useable format using `.json()`
+            return response.json();
+          })
+          .then(function (restaurant_data) {
+            if (restaurant_data.results[0].online) {
+              restaurants[restaurant_name_on_wolt]["interval"] = null;
+              chrome.tabs.sendMessage(tabs[0].id, { restaurant_name_on_wolt });
+            }
+          });
+      }
     }
   });
 }
@@ -92,14 +90,4 @@ async function getRestaurentDetails(restaurant_name_on_wolt) {
       };
     });
   return results;
-}
-
-function updateTrackedRestaurantsLabel() {
-  let tracked_restaurants = "";
-  chrome.storage.local.get(
-    /* String or Array */ ["restaurents"],
-    function (items) {
-      
-    }
-  );
 }
