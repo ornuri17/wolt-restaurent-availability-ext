@@ -53,41 +53,32 @@ function checkRestaurantAvailablity() {
     let restaurants_names = Object.keys(results.restaurants);
     if (restaurants_names.length > 0) {
       for (const restaurant_name_on_wolt of restaurants_names) {
-        await fetch(
+        const response = await fetch(
           "https://restaurant-api.wolt.com/v3/venues/slug/" +
             restaurant_name_on_wolt
-        )
-          .then(function (response) {
-            // The response is a Response instance.
-            // You parse the data into a useable format using `.json()`
-            return response.json();
-          })
-          .then(function (restaurant_data) {
-            if (restaurant_data.results[0].online) {
-              restaurants[restaurant_name_on_wolt]["interval"] = null;
-              chrome.tabs.sendMessage(tabs[0].id, { restaurant_name_on_wolt });
-            }
-          });
+        );
+        // The response is a Response instance.
+        // You parse the data into a useable format using `.json()`
+        const restaurant_data = await response.json();
+        if (!restaurant_data.results[0].online) {
+          restaurants[restaurant_name_on_wolt]["interval"] = null;
+          chrome.tabs.sendMessage(tabs[0].id, { restaurant_name_on_wolt });
+        }
+        return restaurant_data;
       }
     }
   });
 }
 
 async function getRestaurentDetails(restaurant_name_on_wolt) {
-  let results = await fetch(
+  const results = await fetch(
     "https://restaurant-api.wolt.com/v3/venues/slug/" + restaurant_name_on_wolt
-  )
-    .then(function (response) {
-      // The response is a Response instance.
-      // You parse the data into a useable format using `.json()`
-      return response.json();
-    })
-    .then(function (restaurant_data) {
-      return {
-        name: restaurant_data.results[0].name,
-        image: restaurant_data.results[0].mainimage,
-        online: restaurant_data.results[0].online,
-      };
-    });
-  return results;
+  );
+  let restaurant_All_wolt_data = await results.json();
+  let restaurant_data = {};
+
+  restaurant_data.name = restaurant_All_wolt_data.results[0].name;
+  restaurant_data.image = restaurant_All_wolt_data.results[0].mainimage;
+  restaurant_data.online = restaurant_All_wolt_data.results[0].online;
+  return restaurant_data;
 }
