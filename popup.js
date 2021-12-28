@@ -48,7 +48,7 @@ const addTrackedRestaurant = async () => {
       throw `You're already tracking ${restaurant_details.name} availability`;
     } else {
       if (!restaurant_details.open) {
-        alert(`${restaurant_details.name} is closed`);
+        throw `${restaurant_details.name} is closed`;
       } else {
         if (!restaurant_details.online) {
           restaurants.push(restaurant_details);
