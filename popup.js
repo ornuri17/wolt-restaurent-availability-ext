@@ -1,6 +1,15 @@
 const track_button = document.getElementById("track");
 const errors_label = document.getElementById("errors");
 const tracked_restaurants = document.getElementById("tracked_restaurants");
+const dayNumberToDayNameMap = {
+  0: "sunday",
+  1: "monday",
+  2: "tuesday",
+  3: "wednesday",
+  4: "thursday",
+  5: "friday",
+  6: "saturday",
+};
 
 document.addEventListener("DOMContentLoaded", async function () {
   track_button.addEventListener("click", addTrackedRestaurant);
@@ -38,12 +47,16 @@ const addTrackedRestaurant = async () => {
     if (restaurants.filter((r) => r.slug === slug).length > 0) {
       throw `You're already tracking ${restaurant_details.name} availability`;
     } else {
-      if (!restaurant_details.online) {
-        restaurants.push(restaurant_details);
-        await setRestaurantsOnChromeStorage(restaurants);
-        await updateTrackedRestaurantsView();
+      if (!restaurant_details.open) {
+        alert(`${restaurant_details.name} is closed`);
       } else {
-        throw `${restaurant_details.name} is already online`;
+        if (!restaurant_details.online) {
+          restaurants.push(restaurant_details);
+          await setRestaurantsOnChromeStorage(restaurants);
+          await updateTrackedRestaurantsView();
+        } else {
+          throw `${restaurant_details.name} is already online`;
+        }
       }
     }
   } catch (err) {
@@ -80,6 +93,7 @@ const getRestaurantDetails = async (slug) => {
           : restaurant_data.results[0].public_url,
         image: restaurant_data.results[0].mainimage,
         online: restaurant_data.results[0].online,
+        open: checkIfRestaurantIsOpen(restaurant_data.results[0].opening_times),
       };
     });
   return results;
@@ -91,4 +105,29 @@ const getTrackedRestaurantsFromChromeStorage = () => {
       resolve(results ? (results.restaurants ? results.restaurants : []) : []);
     });
   });
+};
+const convertTimeToNumber = (time) => {
+  let date = new Date(time);
+  date = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  return date.getHours() + date.getMinutes() / 60;
+};
+
+const checkIfRestaurentIsOpen = (opening_times) => {
+  const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
+  const current_time = new Date().getHours() + new Date().getMinutes() / 60;
+  return current_time > open_time && current_time < close_time;
+};
+const getOpenAndCloseTimes = (opening_times) => {
+  return {
+    open_time: convertTimeToNumber(
+      opening_times[dayNumberToDayNameMap[new Date().getDay()]].filter(
+        (time) => time.type === "open"
+      )[0].value.$date
+    ),
+    closeTime: convertTimeToNumber(
+      opening_times[dayNumberToDayNameMap[new Date().getDay()]].filter(
+        (time) => time.type === "colse"
+      )[0].value.$date
+    ),
+  };
 };
