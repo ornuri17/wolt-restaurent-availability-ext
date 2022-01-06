@@ -3,9 +3,9 @@ window.onload = () => {
 };
 
 chrome.runtime.onConnect.addListener((port) => {
-  port.onMessage.addListener((message) => {
-    if (message.restaurants) {
-      const restaurants = message.restaurants;
+  port.onMessage.addListener((msg) => {
+    if (msg.title === "RestaurantsAreOnline" && msg.body.restaurants) {
+      const restaurants = msg.body.restaurants;
       let popup = document.getElementById("wolt-chrome-extension-popup");
       if (popup) {
         document.body.removeChild(popup);
