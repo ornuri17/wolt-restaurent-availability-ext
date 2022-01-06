@@ -17,7 +17,7 @@ port.onMessage.addListener((msg) => {
   if (msg.title === "updateTrackedRestaurantsView") {
     updateTrackedRestaurantsView(msg.body.restaurants);
   }
-});
+};
 
 const updateTrackedRestaurantsView = (restaurants) => {
   tracked_restaurants.innerHTML = "";
@@ -41,3 +41,4 @@ const getTrackedRestaurantsFromChromeStorage = () => {
     });
   });
 };
+
