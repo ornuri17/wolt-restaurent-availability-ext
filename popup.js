@@ -1,6 +1,8 @@
 const track_button = document.getElementById("track");
 const errors_label = document.getElementById("errors");
-const tracked_restaurants = document.getElementById("tracked_restaurants");
+const tracked_restaurants_tbl = document.getElementById(
+  "tracked_restaurants_tbl"
+);
 
 const port = chrome.runtime.connect();
 
