@@ -17,7 +17,7 @@ const setTrackedRestaurantsOnChromeStorage = (restaurants) => {
     });
   });
 };
-
+// setTrackedRestaurantsOnChromeStorage([]);
 const getTrackedRestaurantsFromChromeStorage = () => {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["restaurants"], function (results) {
@@ -125,7 +125,11 @@ const addTrackedRestaurant = async (url) => {
       }
     }
   } catch (err) {
-    throw err;
+    // throw err;
+    throw port.postMessage({
+      title: "error",
+      body: { error: err },
+    });
   }
 };
 

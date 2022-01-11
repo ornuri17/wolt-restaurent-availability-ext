@@ -19,6 +19,12 @@ port.onMessage.addListener((msg) => {
   }
 });
 
+port.onMessage.addListener((msg) => {
+  if (msg.title === "error") {
+    alert(msg.body.error);
+  }
+});
+
 const updateTrackedRestaurantsView = (restaurants) => {
   tracked_restaurants.innerHTML = "";
   for (let i = 0; i < restaurants.length; i++) {
