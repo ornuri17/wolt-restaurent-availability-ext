@@ -201,6 +201,11 @@ chrome.runtime.onConnect.addListener((_port) => {
       };
     } else if (msg.title === "addTrackedRestaurant") {
       addTrackedRestaurant(msg.body.url);
+    } else if (
+      msg.title === "setTrackedRestaurantsOnChromeStorage-delete_button"
+    ) {
+      setTrackedRestaurantsOnChromeStorage([]);
+      setTrackedRestaurantsOnChromeStorage(msg.body.restaurants);
     }
   });
 });

@@ -22,8 +22,35 @@ port.onMessage.addListener((msg) => {
 const updateTrackedRestaurantsView = (restaurants) => {
   tracked_restaurants.innerHTML = "";
   for (let i = 0; i < restaurants.length; i++) {
-    tracked_restaurants.innerHTML += i > 0 ? "<br/>" : "";
-    tracked_restaurants.innerHTML += restaurants[i].name;
+    let tr = document.createElement("tr");
+
+    let td_restaurant_name = document.createElement("td");
+    td_restaurant_name.innerHTML = restaurants[i].name;
+    td_restaurant_name.style.color = "blue";
+
+    let td_delete_restaurant = document.createElement("td");
+    let delete_button = document.createElement("button");
+    delete_button.id = restaurants.slug;
+    delete_button.innerText = "X";
+    delete_button.style.backgroundColor = "transparent";
+    delete_button.style.borderColor = "transparent";
+    delete_button.style.color = "red";
+    delete_button.onclick = function () {
+      port.postMessage({
+        title: "setTrackedRestaurantsOnChromeStorage-delete_button",
+        body: {
+          restaurants: restaurants.filter(
+            (r) => r.slug !== restaurants[i].slug
+          ),
+        },
+      });
+      updateTrackedRestaurantsView(getTrackedRestaurantsFromChromeStorage());
+    };
+
+    tracked_restaurants_tbl.appendChild(tr);
+    tr.appendChild(td_restaurant_name);
+    td_delete_restaurant.appendChild(delete_button);
+    tr.appendChild(td_delete_restaurant);
   }
 };
 
