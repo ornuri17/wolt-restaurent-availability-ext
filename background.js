@@ -125,7 +125,6 @@ const addTrackedRestaurant = async (url) => {
       }
     }
   } catch (err) {
-    // throw err;
     throw port.postMessage({
       title: "error",
       body: { error: err },
