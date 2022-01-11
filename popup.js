@@ -1,6 +1,8 @@
 const track_button = document.getElementById("track");
 const errors_label = document.getElementById("errors");
-const tracked_restaurants = document.getElementById("tracked_restaurants");
+const tracked_restaurants_tbl = document.getElementById(
+  "tracked_restaurants_tbl"
+);
 
 const port = chrome.runtime.connect();
 
@@ -19,8 +21,14 @@ port.onMessage.addListener((msg) => {
   }
 });
 
+port.onMessage.addListener((msg) => {
+  if (msg.title === "error") {
+    alert(msg.body.error);
+  }
+});
+
 const updateTrackedRestaurantsView = (restaurants) => {
-  tracked_restaurants.innerHTML = "";
+  tracked_restaurants_tbl.innerHTML = "";
   for (let i = 0; i < restaurants.length; i++) {
     let tr = document.createElement("tr");
 
