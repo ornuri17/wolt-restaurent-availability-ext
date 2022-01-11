@@ -18,6 +18,7 @@ const setTrackedRestaurantsOnChromeStorage = (restaurants) => {
   });
 };
 // setTrackedRestaurantsOnChromeStorage([]);
+
 const getTrackedRestaurantsFromChromeStorage = () => {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["restaurants"], function (results) {
@@ -204,6 +205,11 @@ chrome.runtime.onConnect.addListener((_port) => {
       };
     } else if (msg.title === "addTrackedRestaurant") {
       addTrackedRestaurant(msg.body.url);
+    } else if (
+      msg.title === "setTrackedRestaurantsOnChromeStorage-delete_button"
+    ) {
+      setTrackedRestaurantsOnChromeStorage([]);
+      setTrackedRestaurantsOnChromeStorage(msg.body.restaurants);
     }
   });
 });
