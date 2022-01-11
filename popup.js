@@ -26,10 +26,16 @@ port.onMessage.addListener((msg) => {
 });
 
 const updateTrackedRestaurantsView = (restaurants) => {
-  tracked_restaurants.innerHTML = "";
+  tracked_restaurants_tbl.innerHTML = "";
   for (let i = 0; i < restaurants.length; i++) {
-    tracked_restaurants.innerHTML += i > 0 ? "<br/>" : "";
-    tracked_restaurants.innerHTML += restaurants[i].name;
+    let tr = document.createElement("tr");
+
+    let td_restaurant_name = document.createElement("td");
+    td_restaurant_name.innerHTML = restaurants[i].name;
+    td_restaurant_name.style.color = "blue";
+
+    tracked_restaurants_tbl.appendChild(tr);
+    tr.appendChild(td_restaurant_name);
   }
 };
 
