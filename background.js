@@ -17,7 +17,7 @@ const setTrackedRestaurantsOnChromeStorage = (restaurants) => {
     });
   });
 };
-
+// setTrackedRestaurantsOnChromeStorage([]);
 const getTrackedRestaurantsFromChromeStorage = () => {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["restaurants"], function (results) {
@@ -38,7 +38,8 @@ const deleteRestaurantsFromList = async (restaurants_to_delete) => {
 
 const checkRestaurantAvailablity = async (restaurant) => {
   let response = await fetch(
-    "https://restaurant-api.wolt.com/v3/venues/slug/" + restaurant.slug
+    "https://cors-anywhere.herokuapp.com/https://restaurant-api.wolt.com/v3/venues/slug/" +
+      restaurant.slug
   );
   response = await response.json();
   restaurant.online = response.results[0].online;
@@ -94,48 +95,52 @@ const notifyPopupToUpdateTrackedRestaurantsView = (restaurants) => {
   });
 };
 
-const checking_availability_interval_secs = 20;
-const checking_availability_interval = setInterval(
-  checkRestaurantsAvailablity,
-  checking_availability_interval_secs * 1000
-);
+// const checking_availability_interval_secs = 20;
+// const checking_availability_interval = setInterval(
+//   checkRestaurantsAvailablity,
+//   checking_availability_interval_secs * 1000
+// );
 
-const addTrackedRestaurant = async (url) => {
-  try {
-    validateWoltURL(url);
+const canTrackAvailablity = async (url) => {
+  if (validateWoltURL(url)) {
     const slug = getRestaurentSlugFromURL(url);
-    let restaurants = await getTrackedRestaurantsFromChromeStorage();
-    const restaurant_details = await getRestaurantDetails(slug);
-    if (restaurants.filter((r, i) => r.slug === slug).length > 0) {
-      throw `You're already tracking ${restaurant_details.name} availability`;
+    const restaurants = await getTrackedRestaurantsFromChromeStorage();
+    let restaurant_details = await getRestaurantDetails(slug);
+    if (restaurants.filter((r) => r.slug === slug).length > 0) {
+      return false;
     } else {
       if (!restaurant_details.open) {
-        throw `${restaurant_details.name} is closed`;
+        return false;
       } else {
         if (!restaurant_details.online) {
-          restaurants.push(restaurant_details);
-          await setTrackedRestaurantsOnChromeStorage(restaurants);
-          port.postMessage({
-            title: "updateTrackedRestaurantsView",
-            body: { restaurants },
-          });
+          return restaurant_details;
         } else {
-          throw `${restaurant_details.name} is already online`;
+          return false;
         }
       }
     }
-  } catch (err) {
-    throw err;
+  }
+};
+
+const addTrackedRestaurant = async (url) => {
+  const restaurant_details = await canTrackAvailablity(url);
+  if (restaurant_details) {
+    let restaurants = await getTrackedRestaurantsFromChromeStorage();
+    restaurants.push(restaurant_details);
+    await setTrackedRestaurantsOnChromeStorage(restaurants);
+    chrome.runtime.sendMessage({
+      title: "updateTrackedRestaurantsView",
+      body: { restaurants },
+    });
   }
 };
 
 const validateWoltURL = (url) => {
-  if (
-    url.toLowerCase().indexOf("wolt.com") === -1 ||
-    url.toLowerCase().indexOf("restaurant") === -1
-  ) {
-    throw "Website is not supported";
-  }
+  return (
+    url.toLowerCase().indexOf("wolt.com") !== -1 &&
+    (url.toLowerCase().indexOf("restaurant") !== -1 ||
+      url.toLowerCase().indexOf("venue") !== -1)
+  );
 };
 
 const getRestaurentSlugFromURL = (url) => {
@@ -164,8 +169,8 @@ const getOpenAndCloseTimes = (opening_times) => {
 };
 
 const checkIfRestaurentIsOpen = (opening_times) => {
-  const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
   const current_time = new Date().getHours() + new Date().getMinutes() / 60;
+  const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
   return (
     current_time >= open_time &&
     current_time <= (close_time < open_time ? close_time + 24 : close_time)
@@ -173,10 +178,10 @@ const checkIfRestaurentIsOpen = (opening_times) => {
 };
 
 const getRestaurantDetails = async (slug) => {
-  const response = await fetch(
-    "https://restaurant-api.wolt.com/v3/venues/slug/" + slug
+  let response = await fetch(
+    `https://cors-anywhere.herokuapp.com/https://restaurant-api.wolt.com/v3/venues/slug/${slug}`
   );
-  const restaurant_data = await response.json();
+  let restaurant_data = await response.json();
   return {
     name: restaurant_data.results[0].name[0].value,
     slug,
@@ -201,6 +206,35 @@ chrome.runtime.onConnect.addListener((_port) => {
       };
     } else if (msg.title === "addTrackedRestaurant") {
       addTrackedRestaurant(msg.body.url);
+    } else if (
+      msg.title === "setTrackedRestaurantsOnChromeStorage-delete_button"
+    ) {
+      setTrackedRestaurantsOnChromeStorage([]);
+      setTrackedRestaurantsOnChromeStorage(msg.body.restaurants);
+    } else if (msg.title === "updateTrackedbutton") {
+      updateTrackedbutton();
+    } else if (msg.title === "canTrackAvailablity") {
+      let restaurant_details = await canTrackAvailablity(msg.body.url);
+      if (restaurant_details) {
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            if (tabs.length > 0) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                title: "createTrackButton",
+                body: { restaurant_details },
+              });
+            }
+          }
+        );
+      }
     }
+  });
+});
+
+chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    let url = tabs[0].url;
+    canTrackAvailablity(url);
   });
 });
