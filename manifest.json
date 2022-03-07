@@ -7,13 +7,12 @@
     "service_worker": "background.js"
   },
   "permissions": ["storage", "tabs", "activeTab", "webNavigation"],
-  "host_permissions": ["https://wolt.com/*", "http://wolt.com/*"],
   "action": {
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://wolt.com/*", "http://wolt.com/*"],
+      "matches": ["https://*/*", "http://*/*"],
       "js": ["content_script.js"]
     }
   ]

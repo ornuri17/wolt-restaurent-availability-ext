@@ -1,4 +1,3 @@
-// const track_button = document.getElementById("track");
 const errors_label = document.getElementById("errors");
 const tracked_restaurants_tbl = document.getElementById("tracked_restaurants");
 

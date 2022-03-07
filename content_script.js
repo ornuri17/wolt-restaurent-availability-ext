@@ -48,6 +48,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     document.body.insertBefore(popup, document.body.firstChild);
   } else if (msg.title === "createTrackButton" && msg.body.restaurant_details) {
     let observer = new MutationObserver((mutations) => {
+      /*
+      this button below should be available first on restaurant page in walt.com
+      so here we waiting for it's creation to create a compatible wolt.com site button
+      */
       const favoriteButton = document.querySelector(
         "div[class^='FavoriteButton-module__iconContainer']"
       );
@@ -69,12 +73,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 const createTrackButton = () => {
   if (!document.getElementById("tracking_button")) {
     let tracking_button = document.createElement("BUTTON");
-    let FavoriteButton = document.querySelector(
+    const favoriteButton = document.querySelector(
       "#mainContent > div > div.Venue__VenueContent-sc-3kit60-0.iXeWkx > div.Description-module__wrapper___N6IMY > div > div.Description-module__start___F4ot1 > button"
     );
     tracking_button.id = "tracking_button";
-    tracking_button.innerHTML = FavoriteButton.innerHTML;
-    tracking_button.className = FavoriteButton.className;
+    tracking_button.innerHTML = favoriteButton.innerHTML;
+    tracking_button.className = favoriteButton.className;
     tracking_button.style.marginRight = "16px";
     tracking_button.style.fontSize = "1erm";
     tracking_button.style.display = "block";
@@ -91,10 +95,12 @@ const createTrackButton = () => {
     img.style.width = "16px";
     img.style.height = "16px";
     img.style.marginRight = "12px";
-    img.src =
+    const tracking_icon =
       "https://icons.veryicon.com/png/o/education-technology/power-icon/system-monitoring-1.png";
+    img.src = tracking_icon;
+
     tracking_button.insertBefore(img, tracking_button.firstChild);
-    FavoriteButton.parentNode.appendChild(tracking_button);
+    favoriteButton.parentNode.appendChild(tracking_button);
   }
 };
 
