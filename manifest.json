@@ -6,13 +6,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "tabs", "activeTab", "webNavigation"],
+  "permissions": ["storage", "tabs", "activeTab"],
   "action": {
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://*/*"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["content_script.js"]
     }
   ]
