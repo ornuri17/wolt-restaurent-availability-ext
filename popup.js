@@ -254,6 +254,9 @@ const updateTrackedRestaurantsView = (restaurants) => {
 };
 
 document.addEventListener("DOMContentLoaded", async function () {
+  track_button.addEventListener("click", function () {
+    addTrackedRestaurant();
+  });
   updateTrackedRestaurantsView(await getTrackedRestaurantsFromChromeStorage());
 });
 
