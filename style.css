@@ -2,8 +2,3 @@
   color: #000;
   cursor: pointer;
 }
-#delete_button {
-  background-color: transparent;
-  border-color: transparent;
-  color: rgb(241, 106, 106);
-}

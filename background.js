@@ -8,51 +8,7 @@ const dayNumberToDayNameMap = {
   6: "saturday",
 };
 
-const massages = {
-  to_content_script: {
-    RestaurantsAreOnline: "RestaurantsAreOnline",
-    createTrackButton: "createTrackButton",
-  },
-  to_popup: {
-    updateTrackedRestaurantsView: "updateTrackedRestaurantsView",
-  },
-};
-
-const sendMessageToContentScript = async (title, body, callback) => {
-  chrome.tabs.query(
-    { active: true, currentWindow: true },
-    async function (tabs) {
-      if (tabs.length > 0) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          {
-            title,
-            body,
-          },
-          async function (response) {
-            if (callback) {
-              await callback();
-            }
-          }
-        );
-      }
-    }
-  );
-};
-
-const sendMessageToPopup = (title, body, callback) => {
-  chrome.runtime.sendMessage(
-    {
-      title,
-      body,
-    },
-    async function (response) {
-      if (callback) {
-        await callback();
-      }
-    }
-  );
-};
+let port;
 
 const setTrackedRestaurantsOnChromeStorage = (restaurants) => {
   return new Promise((resolve) => {
@@ -82,7 +38,7 @@ const deleteRestaurantsFromList = async (restaurants_to_delete) => {
 
 const checkRestaurantAvailablity = async (restaurant) => {
   let response = await fetch(
-    `https://restaurant-api.wolt.com/v3/venues/slug/${restaurant.slug}`
+    "https://restaurant-api.wolt.com/v3/venues/slug/" + restaurant.slug
   );
   response = await response.json();
   restaurant.online = response.results[0].online;
@@ -90,13 +46,24 @@ const checkRestaurantAvailablity = async (restaurant) => {
 };
 
 const notifyRestaurantsAreOnlineToActiveTab = (restaurants) => {
-  sendMessageToContentScript(
-    massages.to_content_script.RestaurantsAreOnline,
-    { restaurants },
-    async () => {
-      await deleteRestaurantsFromList(restaurants);
-    }
-  );
+  return new Promise((resolve) => {
+    chrome.tabs.query(
+      { active: true, currentWindow: true },
+      async function (tabs) {
+        if (tabs[0] && tabs[0].id) {
+          const port = chrome.tabs.connect(tabs[0].id);
+          port.postMessage({
+            title: "RestaurantsAreOnline",
+            body: {
+              restaurants,
+            },
+          });
+          await deleteRestaurantsFromList(restaurants);
+        }
+        resolve();
+      }
+    );
+  });
 };
 
 const checkRestaurantsAvailablity = async () => {
@@ -116,8 +83,14 @@ const checkRestaurantsAvailablity = async () => {
 };
 
 const notifyPopupToUpdateTrackedRestaurantsView = (restaurants) => {
-  sendMessageToPopup(massages.to_popup.updateTrackedRestaurantsView, {
-    restaurants,
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({
+      msg: {
+        title: "updateTrackedRestaurantsView",
+        body: { restaurants },
+      },
+    });
+    resolve();
   });
 };
 
@@ -127,51 +100,42 @@ const checking_availability_interval = setInterval(
   checking_availability_interval_secs * 1000
 );
 
-const canTrackAvailablity = async (url) => {
-  if (validateWoltURL(url)) {
+const addTrackedRestaurant = async (url) => {
+  try {
+    validateWoltURL(url);
     const slug = getRestaurentSlugFromURL(url);
-    const restaurants = await getTrackedRestaurantsFromChromeStorage();
+    let restaurants = await getTrackedRestaurantsFromChromeStorage();
     const restaurant_details = await getRestaurantDetails(slug);
-    if (restaurants.filter((r) => r.slug === slug).length > 0) {
-      return false;
+    if (restaurants.filter((r, i) => r.slug === slug).length > 0) {
+      throw `You're already tracking ${restaurant_details.name} availability`;
     } else {
       if (!restaurant_details.open) {
-        return false;
+        throw `${restaurant_details.name} is closed`;
       } else {
         if (!restaurant_details.online) {
-          return restaurant_details;
+          restaurants.push(restaurant_details);
+          await setTrackedRestaurantsOnChromeStorage(restaurants);
+          port.postMessage({
+            title: "updateTrackedRestaurantsView",
+            body: { restaurants },
+          });
         } else {
-          return false;
+          throw `${restaurant_details.name} is already online`;
         }
       }
     }
-  }
-};
-
-const addTrackedRestaurant = async (url) => {
-  try {
-    const restaurant_details = await canTrackAvailablity(url);
-    if (restaurant_details) {
-      let restaurants = await getTrackedRestaurantsFromChromeStorage();
-      restaurants.push(restaurant_details);
-      await setTrackedRestaurantsOnChromeStorage(restaurants);
-      sendMessageToPopup(massages.to_popup.updateTrackedRestaurantsView, {
-        restaurants,
-      });
-    } else {
-      throw new Error("Could not added that restaurant");
-    }
   } catch (err) {
-    console.error(err);
+    throw err;
   }
 };
 
 const validateWoltURL = (url) => {
-  return (
-    url.toLowerCase().indexOf("wolt.com") !== -1 &&
-    (url.toLowerCase().indexOf("restaurant") !== -1 ||
-      url.toLowerCase().indexOf("venue") !== -1)
-  );
+  if (
+    url.toLowerCase().indexOf("wolt.com") === -1 ||
+    url.toLowerCase().indexOf("restaurant") === -1
+  ) {
+    throw "Website is not supported";
+  }
 };
 
 const getRestaurentSlugFromURL = (url) => {
@@ -200,8 +164,8 @@ const getOpenAndCloseTimes = (opening_times) => {
 };
 
 const checkIfRestaurentIsOpen = (opening_times) => {
-  const current_time = new Date().getHours() + new Date().getMinutes() / 60;
   const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
+  const current_time = new Date().getHours() + new Date().getMinutes() / 60;
   return (
     current_time >= open_time &&
     current_time <= (close_time < open_time ? close_time + 24 : close_time)
@@ -210,10 +174,9 @@ const checkIfRestaurentIsOpen = (opening_times) => {
 
 const getRestaurantDetails = async (slug) => {
   const response = await fetch(
-    `https://restaurant-api.wolt.com/v3/venues/slug/${slug}`,
-    {}
+    "https://restaurant-api.wolt.com/v3/venues/slug/" + slug
   );
-  let restaurant_data = await response.json();
+  const restaurant_data = await response.json();
   return {
     name: restaurant_data.results[0].name[0].value,
     slug,
@@ -238,37 +201,6 @@ chrome.runtime.onConnect.addListener((_port) => {
       };
     } else if (msg.title === "addTrackedRestaurant") {
       addTrackedRestaurant(msg.body.url);
-    } else if (
-      msg.title === "setTrackedRestaurantsOnChromeStorage-delete_button"
-    ) {
-      setTrackedRestaurantsOnChromeStorage([]);
-      setTrackedRestaurantsOnChromeStorage(msg.body.restaurants);
-    } else if (msg.title === "updateTrackedbutton") {
-      updateTrackedbutton();
-    } else if (msg.title === "canTrackAvailablity") {
-      const restaurant_details = await canTrackAvailablity(msg.body.url);
-      if (restaurant_details) {
-        sendMessageToContentScript(
-          massages.to_content_script.createTrackButton,
-          { restaurant_details }
-        );
-      }
     }
   });
-});
-
-chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
-  chrome.tabs.query(
-    { active: true, currentWindow: true },
-    async function (tabs) {
-      let url = tabs[0].url;
-      let restaurant_details = await canTrackAvailablity(url);
-      if (restaurant_details) {
-        sendMessageToContentScript(
-          massages.to_content_script.createTrackButton,
-          { restaurant_details }
-        );
-      }
-    }
-  );
 });
