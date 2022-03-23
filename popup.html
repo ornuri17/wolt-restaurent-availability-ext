@@ -2,11 +2,14 @@
 <html>
   <head>
     <link rel="stylesheet" href="style.css" />
+    <script src="popup.js"></script>
   </head>
   <body>
-    <button id="track">Track restaurant availability</button>
-    <span style="color: red" id="errors"></span>
-    <span style="color: blue" id="tracked_restaurants"></span>
-    <script src="popup.js"></script>
+    <div class="carousel-warpper">
+      <div
+        class="carousel-container restaurants-container"
+        id="restaurants-container"
+      ></div>
+    </div>
   </body>
 </html>
