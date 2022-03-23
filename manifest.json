@@ -15,5 +15,8 @@
       "matches": ["https://*/*", "http://*/*"],
       "js": ["content_script.js"]
     }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["bell.png"], "matches": ["https://*/*", "http://*/*"] }
   ]
 }

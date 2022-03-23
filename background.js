@@ -1,4 +1,4 @@
-const dayNumberToDayNameMap = {
+const DAY_INDEX_TO_DAY_NAME_MAP = {
   0: "sunday",
   1: "monday",
   2: "tuesday",
@@ -7,37 +7,40 @@ const dayNumberToDayNameMap = {
   5: "friday",
   6: "saturday",
 };
-
-const massages = {
-  to_content_script: {
-    RestaurantsAreOnline: "RestaurantsAreOnline",
-    createTrackButton: "createTrackButton",
+const ENGLISH = "en";
+const EMPTY_STRING = "";
+const MESSAGE_TITLES = {
+  reading: {
+    from_content: {
+      add_tracked_restaurant: "addTrackedRestaurant",
+      can_track_availablity: "canTrackAvailablity",
+    },
+    from_popup: { delete_tracked_restaurant: "deleteTrackedRestaurant" },
   },
-  to_popup: {
-    updateTrackedRestaurantsView: "updateTrackedRestaurantsView",
+  sending: {
+    to_content_script: {
+      restaurants_are_online: "RestaurantsAreOnline",
+      create_track_button: "createTrackButton",
+      show_tracked_restaurant_message: "showTrackedRestaurantMessage",
+    },
+    to_popup: {
+      update_tracked_restaurants_view: "updateTrackedRestaurantsView",
+    },
   },
 };
 
-const sendMessageToContentScript = async (title, body, callback) => {
-  chrome.tabs.query(
-    { active: true, currentWindow: true },
-    async function (tabs) {
-      if (tabs.length > 0) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          {
-            title,
-            body,
-          },
-          async function (response) {
-            if (callback) {
-              await callback();
-            }
-          }
-        );
-      }
+const sendMessageToContentScript = (title, body) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (tabs.length > 0) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        title,
+        body,
+      });
+    } else {
+      setTimeout(() => {}, 1000);
+      sendMessageToContentScript(title, body);
     }
-  );
+  });
 };
 
 const sendMessageToPopup = (title, body, callback) => {
@@ -91,12 +94,10 @@ const checkRestaurantAvailablity = async (restaurant) => {
 
 const notifyRestaurantsAreOnlineToActiveTab = (restaurants) => {
   sendMessageToContentScript(
-    massages.to_content_script.RestaurantsAreOnline,
-    { restaurants },
-    async () => {
-      await deleteRestaurantsFromList(restaurants);
-    }
+    MESSAGE_TITLES.sending.to_content_script.restaurants_are_online,
+    { restaurants }
   );
+  deleteRestaurantsFromList(restaurants);
 };
 
 const checkRestaurantsAvailablity = async () => {
@@ -116,9 +117,12 @@ const checkRestaurantsAvailablity = async () => {
 };
 
 const notifyPopupToUpdateTrackedRestaurantsView = (restaurants) => {
-  sendMessageToPopup(massages.to_popup.updateTrackedRestaurantsView, {
-    restaurants,
-  });
+  sendMessageToPopup(
+    MESSAGE_TITLES.sending.to_popup.update_tracked_restaurants_view,
+    {
+      restaurants,
+    }
+  );
 };
 
 const checking_availability_interval_secs = 20;
@@ -155,9 +159,19 @@ const addTrackedRestaurant = async (url) => {
       let restaurants = await getTrackedRestaurantsFromChromeStorage();
       restaurants.push(restaurant_details);
       await setTrackedRestaurantsOnChromeStorage(restaurants);
-      sendMessageToPopup(massages.to_popup.updateTrackedRestaurantsView, {
-        restaurants,
-      });
+      sendMessageToPopup(
+        MESSAGE_TITLES.sending.to_popup.update_tracked_restaurants_view,
+        {
+          restaurants,
+        }
+      );
+      sendMessageToContentScript(
+        MESSAGE_TITLES.sending.to_content_script
+          .show_tracked_restaurant_message,
+        {
+          message_inner_html: `<div style="margin: auto">You are tracking restaurant - <b>${restaurant_details.name}</b>. We will let you know when it is online</div>`,
+        }
+      );
     } else {
       throw new Error("Could not added that restaurant");
     }
@@ -187,12 +201,12 @@ const convertTimeToNumber = (time) => {
 const getOpenAndCloseTimes = (opening_times) => {
   return {
     open_time: convertTimeToNumber(
-      opening_times[dayNumberToDayNameMap[new Date().getDay()]].filter(
+      opening_times[DAY_INDEX_TO_DAY_NAME_MAP[new Date().getDay()]].filter(
         (time) => time.type === "open"
       )[0].value.$date
     ),
     close_time: convertTimeToNumber(
-      opening_times[dayNumberToDayNameMap[new Date().getDay()]].filter(
+      opening_times[DAY_INDEX_TO_DAY_NAME_MAP[new Date().getDay()]].filter(
         (time) => time.type === "close"
       )[0].value.$date
     ),
@@ -214,42 +228,52 @@ const getRestaurantDetails = async (slug) => {
     {}
   );
   let restaurant_data = await response.json();
+  let description = restaurant_data.results[0].short_description.filter(
+    (description) => {
+      return description.lang == ENGLISH;
+    }
+  );
+  description = description.length > 0 ? description[0].value : EMPTY_STRING;
   return {
     name: restaurant_data.results[0].name[0].value,
     slug,
     url: restaurant_data.results[0].url
       ? restaurant_data.results[0].url
       : restaurant_data.results[0].public_url,
-    image: restaurant_data.results[0].mainimage,
+    image: restaurant_data.results[0].listimage,
     online: restaurant_data.results[0].online,
+    description,
     open: checkIfRestaurentIsOpen(restaurant_data.results[0].opening_times),
   };
 };
 
-chrome.runtime.onConnect.addListener((_port) => {
-  port = _port;
-  port.onMessage.addListener(async (msg, sender, sendResponse) => {
-    if (msg.title === "getTrackedRestaurantsFromChromeStorage") {
-      const tracked_restaurants =
-        await getTrackedRestaurantsFromChromeStorage();
-      sendResponse = {
-        title: "updateTrackedRestaurantsView",
-        body: { restaurants: tracked_restaurants },
-      };
-    } else if (msg.title === "addTrackedRestaurant") {
+chrome.runtime.onConnect.addListener((port) => {
+  port.onMessage.addListener(async (msg) => {
+    if (
+      msg.title === MESSAGE_TITLES.reading.from_content.add_tracked_restaurant
+    ) {
       addTrackedRestaurant(msg.body.url);
     } else if (
-      msg.title === "setTrackedRestaurantsOnChromeStorage-delete_button"
+      msg.title === MESSAGE_TITLES.reading.from_popup.delete_tracked_restaurant
     ) {
       setTrackedRestaurantsOnChromeStorage([]);
       setTrackedRestaurantsOnChromeStorage(msg.body.restaurants);
-    } else if (msg.title === "updateTrackedbutton") {
-      updateTrackedbutton();
-    } else if (msg.title === "canTrackAvailablity") {
+      let restaurant_details = await canTrackAvailablity(
+        msg.body.deleted_restaurant_url
+      );
+      if (restaurant_details) {
+        sendMessageToContentScript(
+          MESSAGE_TITLES.sending.to_content_script.create_track_button,
+          { restaurant_details }
+        );
+      }
+    } else if (
+      msg.title === MESSAGE_TITLES.reading.from_content.can_track_availablity
+    ) {
       const restaurant_details = await canTrackAvailablity(msg.body.url);
       if (restaurant_details) {
         sendMessageToContentScript(
-          massages.to_content_script.createTrackButton,
+          MESSAGE_TITLES.sending.to_content_script.create_track_button,
           { restaurant_details }
         );
       }
@@ -261,13 +285,15 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
   chrome.tabs.query(
     { active: true, currentWindow: true },
     async function (tabs) {
-      let url = tabs[0].url;
-      let restaurant_details = await canTrackAvailablity(url);
-      if (restaurant_details) {
-        sendMessageToContentScript(
-          massages.to_content_script.createTrackButton,
-          { restaurant_details }
-        );
+      if (tabs.length > 0) {
+        let url = tabs[0].url;
+        let restaurant_details = await canTrackAvailablity(url);
+        if (restaurant_details) {
+          sendMessageToContentScript(
+            MESSAGE_TITLES.sending.to_content_script.create_track_button,
+            { restaurant_details }
+          );
+        }
       }
     }
   );
