@@ -28,7 +28,7 @@ const LANGUAGES = {
 let LANGUAGE;
 
 const SELECTORS = {
-  favorite_button: "div[class^='FavoriteButton-module__iconContainer']",
+  favorite_button: "button[class^='FavoriteButton-module__button___']",
   order_together_button: "a[class^='GroupOrderButton-module']",
 };
 const getLanguage = () => {
@@ -37,7 +37,7 @@ const getLanguage = () => {
     : LANGUAGES.EN;
 };
 
-const showMessageBar = (message_inner_html) => {
+const showMessageBar = (element, multiline = false) => {
   let popup = document.getElementById("woltChromeExtensionPopup");
   if (popup) {
     document.body.removeChild(popup);
@@ -48,40 +48,45 @@ const showMessageBar = (message_inner_html) => {
   popup = document.createElement("div");
   popup.setAttribute("id", "woltChromeExtensionPopup");
   popup.style.width = "100%";
-  popup.style.height = "3em";
+  popup.style.height = multiline ? "7em" : "5em";
   popup.style.position = "fixed";
   popup.style.top = "0";
   popup.style.background = "url('https://i.gifer.com/Y3ie.gif'),#009de0";
   popup.style.backgroundSize = "20%";
-  popup.style.color = "#FFF";
   popup.style.fontFamily =
     'system-ui,-apple-system,BlinkMacSystemFont,"Roboto","Open Sans",sans-serif;';
-  popup.style.zIndex = "999999999999";
+  popup.style.zIndex = "100";
   popup.style.alignItems = "center";
   popup.style.justifyContent = "center";
-  popup.style.fontSize = "14px";
+  popup.style.fontSize = "12px";
   popup.style.display = "flex";
-  popup.style.letterSpacing = "1px";
+  popup.style.letterSpacing = "0.5px";
   popup.style.fontWeight = "bold";
-  popup.style.textShadow = "1px 1px black, 1.5px 1.5px black";
 
   // Adding hide button
   const closePopup = document.createElement("div");
   closePopup.style.cursor = "pointer";
   closePopup.style.position = "fixed";
-  closePopup.style.right = "1em";
+  closePopup.style.left = "10px";
+  closePopup.style.top = "5px";
   closePopup.style.textShadow = "0 0 black";
   closePopup.innerText = "X";
   closePopup.onclick = function () {
     popup.style.display = "none";
   };
+  element.style.zIndex = "101";
+  element.style.padding = "4px 8px";
+  element.style.backgroundColor = "white";
+  element.style.borderRadius = "15px";
+  element.style.textAlign = "center";
+  element.style.lineHeight = "1.65";
   document.head.appendChild(styleElement);
-  popup.innerHTML = message_inner_html;
+  popup.appendChild(element);
   popup.appendChild(closePopup);
   document.body.insertBefore(popup, document.body.firstChild);
-  // setTimeout(() => {
-  //   document.getElementById("woltChromeExtensionPopup").remove();
-  // }, 5000);
+  setTimeout(() => {
+    document.getElementById("woltChromeExtensionPopup").remove();
+  }, 5000);
 };
 
 chrome.runtime.onMessage.addListener((msg) => {
@@ -91,19 +96,47 @@ chrome.runtime.onMessage.addListener((msg) => {
     msg.body.restaurants
   ) {
     const restaurants = msg.body.restaurants;
-    let popup_inner_html;
+    let popup_element = document.createElement("div");
     // Adding restaurants names and links
     if (restaurants.length === 1) {
-      popup_inner_html = `Restaurant <b>${restaurants[0].name}</b> is available. <a href="${restaurants[0].url}">Click here</a> to order now!`;
+      let popup_first_text_element = document.createElement("div");
+      popup_first_text_element.innerText = `Restaurant ${restaurants[0].name} is online. `;
+
+      let popup_link_element = document.createElement("a");
+      popup_link_element.href = restaurants[0].url;
+      popup_link_element.innerText = "Click here";
+
+      let popup_second_text_element = document.createElement("div");
+      popup_second_text_element.appendChild(popup_link_element);
+      popup_second_text_element.innerHTML += " to order now";
+
+      popup_element.appendChild(popup_first_text_element);
+      popup_element.appendChild(popup_second_text_element);
     } else {
-      popup_inner_html = "The following restaurents are available: ";
+      let popup_first_text_element = document.createElement("div");
+      popup_first_text_element.innerText =
+        "The following restaurents are now online: ";
+
+      popup_element.appendChild(popup_first_text_element);
+
       for (let i = 0; i < restaurants.length; i++) {
-        popup_inner_html += `<a href="${restaurants[i].url}"><b>${restaurants[i].name}</b></a>`;
-        popup_inner_html += i !== restaurant.length - 1 ? " " : "";
+        let popup_link_element = document.createElement("a");
+        popup_link_element.href = restaurants[i].url;
+        popup_link_element.innerText = restaurants[i].name;
+        popup_element.appendChild(popup_link_element);
+        if (i !== restaurants.length - 1) {
+          let seperator = document.createElement("span");
+          seperator.innerHTML = "&emsp;|&emsp;";
+          popup_element.appendChild(seperator);
+        }
       }
-      popup_inner_html += ". Click on the restaurant name to order now!";
+
+      let popup_second_text_element = document.createElement("div");
+      popup_second_text_element.innerText =
+        "Click on the restaurant name to order now!";
+      popup_element.appendChild(popup_second_text_element);
     }
-    showMessageBar(popup_inner_html);
+    showMessageBar(popup_element, restaurants.length > 1);
   } else if (
     msg.title === MESSAGE_TITLES.reading.from_background.create_track_button &&
     msg.body.restaurant_details
@@ -135,33 +168,24 @@ chrome.runtime.onMessage.addListener((msg) => {
     msg.title ===
     MESSAGE_TITLES.reading.from_background.show_tracked_restaurant_message
   ) {
-    showMessageBar(msg.body.message_inner_html);
+    let message_element = document.createElement("div");
+    message_element.style.margin = "auto";
+    message_element.innerHTML = `You are now tracking - ${msg.body.restaurant_name}.<br>We will let you know once it's online`;
+
+    showMessageBar(message_element);
   }
 });
-
-const redirectTo = (url) => {
-  window.location.href = url;
-};
-
-let button = document.createElement("button");
-button.onclick = () => {
-  redirectTo("https://google.com");
-};
-button.innerText = "sababa";
-
-showMessageBar(button.outerHTML);
 
 const createTrackButton = () => {
   if (!document.getElementById("tracking_button")) {
     let tracking_button = document.createElement("button");
-    const favoriteButton = document.querySelector(
-      "button[class^='FavoriteButton-module__button___']"
-    );
+    const favoriteButton = document.querySelector(SELECTORS.favorite_button);
     tracking_button.id = "tracking_button";
     tracking_button.innerHTML = favoriteButton.innerHTML;
     tracking_button.className = favoriteButton.className;
     if (document.querySelector(SELECTORS.order_together_button)) {
       tracking_button.style.marginLeft = "16px";
+      tracking_button.style.marginRight = "0px";
     }
     tracking_button.style.fontSize = "1erm";
     tracking_button.style.display = "block";

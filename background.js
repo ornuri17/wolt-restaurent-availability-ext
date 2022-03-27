@@ -7,7 +7,6 @@ const DAY_INDEX_TO_DAY_NAME_MAP = {
   5: "friday",
   6: "saturday",
 };
-
 const ENGLISH = "en";
 const EMPTY_STRING = "";
 const MESSAGE_TITLES = {
@@ -86,7 +85,7 @@ const deleteRestaurantsFromList = async (restaurants_to_delete) => {
 
 const checkRestaurantAvailablity = async (restaurant) => {
   let response = await fetch(
-    "https://restaurant-api.wolt.com/v3/venues/slug/" + restaurant.slug
+    `https://restaurant-api.wolt.com/v3/venues/slug/${restaurant.slug}`
   );
   response = await response.json();
   restaurant.online = response.results[0].online;
@@ -94,7 +93,6 @@ const checkRestaurantAvailablity = async (restaurant) => {
 };
 
 const notifyRestaurantsAreOnlineToActiveTab = (restaurants) => {
-
   sendMessageToContentScript(
     MESSAGE_TITLES.sending.to_content_script.restaurants_are_online,
     { restaurants }
@@ -133,27 +131,21 @@ const checking_availability_interval = setInterval(
   checking_availability_interval_secs * 1000
 );
 
-const addTrackedRestaurant = async (url) => {
-  try {
-    validateWoltURL(url);
+const canTrackAvailablity = async (url) => {
+  if (validateWoltURL(url)) {
     const slug = getRestaurentSlugFromURL(url);
-    let restaurants = await getTrackedRestaurantsFromChromeStorage();
+    const restaurants = await getTrackedRestaurantsFromChromeStorage();
     const restaurant_details = await getRestaurantDetails(slug);
-    if (restaurants.filter((r, i) => r.slug === slug).length > 0) {
-      throw `You're already tracking ${restaurant_details.name} availability`;
+    if (restaurants.filter((r) => r.slug === slug).length > 0) {
+      return false;
     } else {
       if (!restaurant_details.open) {
-        throw `${restaurant_details.name} is closed`;
+        return false;
       } else {
         if (!restaurant_details.online) {
-          restaurants.push(restaurant_details);
-          await setTrackedRestaurantsOnChromeStorage(restaurants);
-          port.postMessage({
-            title: "updateTrackedRestaurantsView",
-            body: { restaurants },
-          });
+          return restaurant_details;
         } else {
-          throw `${restaurant_details.name} is already online`;
+          return false;
         }
       }
     }
@@ -177,24 +169,23 @@ const addTrackedRestaurant = async (url) => {
         MESSAGE_TITLES.sending.to_content_script
           .show_tracked_restaurant_message,
         {
-          message_inner_html: `<div style="margin: auto">You are tracking restaurant - <b>${restaurant_details.name}</b>. We will let you know when it is online</div>`,
+          restaurant_name: restaurant_details.name,
         }
       );
     } else {
       throw new Error("Could not added that restaurant");
     }
   } catch (err) {
-    throw err;
+    console.error(err);
   }
 };
 
 const validateWoltURL = (url) => {
-  if (
-    url.toLowerCase().indexOf("wolt.com") === -1 ||
-    url.toLowerCase().indexOf("restaurant") === -1
-  ) {
-    throw "Website is not supported";
-  }
+  return (
+    url.toLowerCase().indexOf("wolt.com") !== -1 &&
+    (url.toLowerCase().indexOf("restaurant") !== -1 ||
+      url.toLowerCase().indexOf("venue") !== -1)
+  );
 };
 
 const getRestaurentSlugFromURL = (url) => {
@@ -223,8 +214,8 @@ const getOpenAndCloseTimes = (opening_times) => {
 };
 
 const checkIfRestaurentIsOpen = (opening_times) => {
-  const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
   const current_time = new Date().getHours() + new Date().getMinutes() / 60;
+  const { open_time, close_time } = getOpenAndCloseTimes(opening_times);
   return (
     current_time >= open_time &&
     current_time <= (close_time < open_time ? close_time + 24 : close_time)
@@ -233,7 +224,8 @@ const checkIfRestaurentIsOpen = (opening_times) => {
 
 const getRestaurantDetails = async (slug) => {
   const response = await fetch(
-    "https://restaurant-api.wolt.com/v3/venues/slug/" + slug
+    `https://restaurant-api.wolt.com/v3/venues/slug/${slug}`,
+    {}
   );
   let restaurant_data = await response.json();
   let description = restaurant_data.results[0].short_description.filter(

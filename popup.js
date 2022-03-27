@@ -33,13 +33,22 @@ let moving = true;
 
 // To initialise the carousel we'll want to update the DOM with our own classes
 function setInitialClasses() {
+  debugger;
   // Target the last, initial, and next items and give them the relevant class.
   // This assumes there are three or more items.
+
   if (totalItems > 1) {
     items[totalItems - 1].classList.add("prev");
-    items[0].classList.add("active");
     items[1].classList.add("next");
+    items[0].classList.add("active");
     carousel_indicators[0].classList.add("active");
+  } else if (totalItems === 1) {
+    items[0].classList.add("active");
+    let next = document.getElementsByClassName("carousel-button-next")[0],
+      prev = document.getElementsByClassName("carousel-button-prev")[0];
+    carousel_indicators[0].style.display = "none";
+    next.classList.add("disabled");
+    prev.classList.add("disabled");
   }
 }
 
@@ -176,7 +185,7 @@ const updateTrackedRestaurantsView = (restaurants) => {
   restaurants_container.appendChild(carousel_prev_button);
 
   if (restaurants.length === 0) {
-    let empty_state = document.createElement("span");
+    let empty_state = document.createElement("div");
     empty_state.className = "empty_state";
     empty_state.innerHTML = "You are not tracking any restaurant";
     document.body.appendChild(empty_state);
@@ -254,9 +263,6 @@ const updateTrackedRestaurantsView = (restaurants) => {
 };
 
 document.addEventListener("DOMContentLoaded", async function () {
-  track_button.addEventListener("click", function () {
-    addTrackedRestaurant();
-  });
   updateTrackedRestaurantsView(await getTrackedRestaurantsFromChromeStorage());
 });
 
