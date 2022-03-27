@@ -72,6 +72,8 @@
   color: #009de0;
   width: 150px;
   font-weight: bold;
+  padding: 8px;
+  text-align: center;
 }
 
 .carousel-button {
@@ -83,7 +85,6 @@
 /* Parent wrapper to carousel. Width can be changed as needed. */
 .carousel-wrapper {
   overflow: hidden;
-  width: 90%;
   margin: auto;
 }
 
@@ -97,6 +98,10 @@
   -webkit-transform-style: preserve-3d;
   -moz-transform-style: preserve-3d;
   transform-style: preserve-3d;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 /* By default we're hiding items (except the initial one) until the JS initiates. Elements are absolutely positioned with a width of 100% (as we're styling for mobile first), letting the content's height dictate the height of the carousel. Our magic property here for all our animation needs is 'transition', taking the properties we wish to animate 'transform' and 'opacity', along with the length of time in seconds. */
@@ -163,6 +168,18 @@
 .carousel-button-prev:hover::after {
   border-right: 2px solid #009de0;
   border-bottom: 2px solid #009de0;
+}
+
+.disabled.carousel-button-next,
+.disabled.carousel-button-prev {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.disabled.carousel-button-next::after,
+.disabled.carousel-button-prev::after {
+  border-right: 2px solid grey;
+  border-bottom: 2px solid grey;
 }
 
 /* Use pseudo elements to insert arrows inside of navigation buttons */
