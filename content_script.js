@@ -27,6 +27,16 @@ const LANGUAGES = {
 };
 let LANGUAGE;
 
+const NOTFICATIONS_MESSAGES = {
+  tracking: {
+    EN: {
+      start: `You are now tracking - `,
+      end: `<br>We will let you know once it's online`,
+    },
+    HE: `נכנסה למעקב.<br>נודיע לך כאשר המשלוחים יפתחו`,
+  },
+};
+
 const SELECTORS = {
   favorite_button: "button[class^='FavoriteButton-module__button___']",
   order_together_button: "a[class^='GroupOrderButton-module']",
@@ -100,22 +110,32 @@ chrome.runtime.onMessage.addListener((msg) => {
     // Adding restaurants names and links
     if (restaurants.length === 1) {
       let popup_first_text_element = document.createElement("div");
-      popup_first_text_element.innerText = `Restaurant ${restaurants[0].name} is online. `;
+      if (LANGUAGE === LANGUAGES.HE) {
+        popup_first_text_element.style.direction = "rtl";
+      }
+      popup_first_text_element.innerText =
+        LANGUAGE === LANGUAGES.EN
+          ? `Restaurant ${restaurants[0].name} is online.`
+          : `${restaurants[0].name} פתוחה כעת להזמנות`;
 
       let popup_link_element = document.createElement("a");
       popup_link_element.href = restaurants[0].url;
-      popup_link_element.innerText = "Click here";
+      popup_link_element.innerText =
+        LANGUAGE === LANGUAGES.EN ? "Click here" : "לחצו כאן";
 
       let popup_second_text_element = document.createElement("div");
       popup_second_text_element.appendChild(popup_link_element);
-      popup_second_text_element.innerHTML += " to order now";
+      popup_second_text_element.innerHTML +=
+        LANGUAGE === LANGUAGES.EN ? " to order now" : " והזמינו עכשיו";
 
       popup_element.appendChild(popup_first_text_element);
       popup_element.appendChild(popup_second_text_element);
     } else {
       let popup_first_text_element = document.createElement("div");
       popup_first_text_element.innerText =
-        "The following restaurents are now online: ";
+        LANGUAGE === LANGUAGES.EN
+          ? "The following restaurents are now online: "
+          : ":המסעדות הבאות פתוחות כעת להזמנות ";
 
       popup_element.appendChild(popup_first_text_element);
 
@@ -132,8 +152,11 @@ chrome.runtime.onMessage.addListener((msg) => {
       }
 
       let popup_second_text_element = document.createElement("div");
+
       popup_second_text_element.innerText =
-        "Click on the restaurant name to order now!";
+        LANGUAGE === LANGUAGES.EN
+          ? "Click on the restaurant name to order now!"
+          : "לחצו על שם המסעדה ממנה תרצו להזמין והזמינו עכשיו";
       popup_element.appendChild(popup_second_text_element);
     }
     showMessageBar(popup_element, restaurants.length > 1);
@@ -170,8 +193,13 @@ chrome.runtime.onMessage.addListener((msg) => {
   ) {
     let message_element = document.createElement("div");
     message_element.style.margin = "auto";
-    message_element.innerHTML = `You are now tracking - ${msg.body.restaurant_name}.<br>We will let you know once it's online`;
-
+    message_element.innerHTML =
+      LANGUAGE === LANGUAGES.EN
+        ? `${NOTFICATIONS_MESSAGES.tracking.EN.start}${msg.body.restaurant_name}${NOTFICATIONS_MESSAGES.tracking.EN.end}`
+        : `${msg.body.restaurant_name} ${NOTFICATIONS_MESSAGES.tracking.HE}`;
+    if (LANGUAGE === LANGUAGES.HE) {
+      message_element.style.direction = "rtl";
+    }
     showMessageBar(message_element);
   }
 });
@@ -184,24 +212,32 @@ const createTrackButton = () => {
     tracking_button.innerHTML = favoriteButton.innerHTML;
     tracking_button.className = favoriteButton.className;
     if (document.querySelector(SELECTORS.order_together_button)) {
-      tracking_button.style.marginLeft = "16px";
-      tracking_button.style.marginRight = "0px";
+      if (LANGUAGE === LANGUAGES.EN) {
+        tracking_button.style.marginLeft = "16px";
+        tracking_button.style.marginRight = "0px";
+      } else {
+        tracking_button.style.marginRight = "16px";
+      }
     }
     tracking_button.style.fontSize = "1erm";
-    tracking_button.style.display = "block";
+    tracking_button.style.display = "flex";
     tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
     tracking_button.childNodes[0].remove();
     tracking_button.onclick = () => {
       chrome.runtime.connect().postMessage({
         title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-        body: { url: window.location.href },
+        body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
       });
       document.getElementById("tracking_button").remove();
     };
     let img = document.createElement("img");
     img.style.width = "16px";
     img.style.height = "16px";
-    img.style.marginRight = "12px";
+    if (LANGUAGE === LANGUAGES.EN) {
+      img.style.marginRight = "12px";
+    } else {
+      img.style.marginLeft = "12px";
+    }
     img.src = chrome.runtime.getURL("bell.png");
 
     tracking_button.insertBefore(img, tracking_button.firstChild);

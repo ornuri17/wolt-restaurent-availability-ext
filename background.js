@@ -131,11 +131,11 @@ const checking_availability_interval = setInterval(
   checking_availability_interval_secs * 1000
 );
 
-const canTrackAvailablity = async (url) => {
+const canTrackAvailablity = async (url, lang = "en") => {
   if (validateWoltURL(url)) {
     const slug = getRestaurentSlugFromURL(url);
     const restaurants = await getTrackedRestaurantsFromChromeStorage();
-    const restaurant_details = await getRestaurantDetails(slug);
+    const restaurant_details = await getRestaurantDetails(slug, lang);
     if (restaurants.filter((r) => r.slug === slug).length > 0) {
       return false;
     } else {
@@ -152,9 +152,9 @@ const canTrackAvailablity = async (url) => {
   }
 };
 
-const addTrackedRestaurant = async (url) => {
+const addTrackedRestaurant = async (url, lang = "en") => {
   try {
-    const restaurant_details = await canTrackAvailablity(url);
+    const restaurant_details = await canTrackAvailablity(url, lang);
     if (restaurant_details) {
       let restaurants = await getTrackedRestaurantsFromChromeStorage();
       restaurants.push(restaurant_details);
@@ -222,27 +222,35 @@ const checkIfRestaurentIsOpen = (opening_times) => {
   );
 };
 
-const getRestaurantDetails = async (slug) => {
+const getRestaurantDetails = async (slug, lang = "en") => {
   const response = await fetch(
     `https://restaurant-api.wolt.com/v3/venues/slug/${slug}`,
-    {}
+    {
+      headers: {
+        "app-language": lang,
+      },
+    }
   );
   let restaurant_data = await response.json();
   let description = restaurant_data.results[0].short_description.filter(
     (description) => {
-      return description.lang == ENGLISH;
+      return description.lang === lang;
     }
   );
-  description = description.length > 0 ? description[0].value : EMPTY_STRING;
+  let name = restaurant_data.results[0].name.filter((name) => {
+    return name.lang === lang;
+  });
+  description = description.length > 0 ? description[0].value : null;
+  name = name.length > 0 ? name[0].value : null;
   return {
-    name: restaurant_data.results[0].name[0].value,
+    name: name || restaurant_data.results[0].name[0].value,
     slug,
     url: restaurant_data.results[0].url
       ? restaurant_data.results[0].url
       : restaurant_data.results[0].public_url,
     image: restaurant_data.results[0].listimage,
     online: restaurant_data.results[0].online,
-    description,
+    description: description || restaurant_data.results[0].description[0].value,
     open: checkIfRestaurentIsOpen(restaurant_data.results[0].opening_times),
   };
 };
@@ -252,7 +260,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (
       msg.title === MESSAGE_TITLES.reading.from_content.add_tracked_restaurant
     ) {
-      addTrackedRestaurant(msg.body.url);
+      addTrackedRestaurant(msg.body.url, msg.body.lang);
     } else if (
       msg.title === MESSAGE_TITLES.reading.from_popup.delete_tracked_restaurant
     ) {

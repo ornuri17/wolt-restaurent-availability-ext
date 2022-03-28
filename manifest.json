@@ -1,5 +1,5 @@
 {
-  "name": "Wolt - Restaurant Availability Alarm",
+  "name": "Woltor",
   "description": "Let you know when the restaurant is want to order from is online!",
   "version": "1.0",
   "manifest_version": 3,
@@ -18,5 +18,6 @@
   ],
   "web_accessible_resources": [
     { "resources": ["bell.png"], "matches": ["https://*/*", "http://*/*"] }
-  ]
+  ],
+  "icons": { "16": "icon.png" }
 }

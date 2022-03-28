@@ -33,7 +33,6 @@ let moving = true;
 
 // To initialise the carousel we'll want to update the DOM with our own classes
 function setInitialClasses() {
-  debugger;
   // Target the last, initial, and next items and give them the relevant class.
   // This assumes there are three or more items.
 
