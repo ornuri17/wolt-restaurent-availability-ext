@@ -42,17 +42,19 @@ const SELECTORS = {
   order_together_button: "a[class^='GroupOrderButton-module']",
 };
 
-const s = document.createElement("script");
-s.setAttribute("src", chrome.runtime.getURL("googleAnalytics.js"));
-document.body.appendChild(s);
-const s1 = document.createElement("script");
-s1.innerHTML = `window.dataLayer = window.dataLayer || []
-function gtag() {
-  dataLayer.push(arguments);
-}
-gtag("js", new Date());
+const GOOGLE_ANALYTICS = {
+  file: "googleAnalytics.js",
+  DataLayer: `window.dataLayer = window.dataLayer || []function gtag() {dataLayer.push(arguments);}gtag("js", new Date());gtag("config", "G-VF6M91Y2SH");`,
+};
 
-gtag("config", "G-VF6M91Y2SH");`;
+const googleanAlyticsSrc = document.createElement("script");
+googleanAlyticsSrc.setAttribute(
+  "src",
+  chrome.runtime.getURL(GOOGLE_ANALYTICS.file)
+);
+document.body.appendChild(s);
+const googleanAlyticsDataLayer = document.createElement("script");
+googleanAlyticsDataLayer.innerHTML = GOOGLE_ANALYTICS.DataLayer;
 
 const getLanguage = () => {
   return window.location.href.includes(`/${LANGUAGES.HE.toLocaleLowerCase()}/`)
