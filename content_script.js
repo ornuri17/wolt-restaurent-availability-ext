@@ -30,8 +30,8 @@ let LANGUAGE;
 const NOTFICATIONS_MESSAGES = {
   tracking: {
     EN: {
-      start: `You are now tracking - `,
-      end: `<br>We will let you know once it's online`,
+      part_one: `You are now tracking - `,
+      part_two: `<br>We will let you know once it's online`,
     },
     HE: `נכנסה למעקב.<br>נודיע לך כאשר המשלוחים יפתחו`,
   },
@@ -41,6 +41,19 @@ const SELECTORS = {
   favorite_button: "button[class^='FavoriteButton-module__button___']",
   order_together_button: "a[class^='GroupOrderButton-module']",
 };
+
+const s = document.createElement("script");
+s.setAttribute("src", chrome.runtime.getURL("googleAnalytics.js"));
+document.body.appendChild(s);
+const s1 = document.createElement("script");
+s1.innerHTML = `window.dataLayer = window.dataLayer || []
+function gtag() {
+  dataLayer.push(arguments);
+}
+gtag("js", new Date());
+
+gtag("config", "G-VF6M91Y2SH");`;
+
 const getLanguage = () => {
   return window.location.href.includes(`/${LANGUAGES.HE.toLocaleLowerCase()}/`)
     ? LANGUAGES.HE
@@ -195,7 +208,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     message_element.style.margin = "auto";
     message_element.innerHTML =
       LANGUAGE === LANGUAGES.EN
-        ? `${NOTFICATIONS_MESSAGES.tracking.EN.start}${msg.body.restaurant_name}${NOTFICATIONS_MESSAGES.tracking.EN.end}`
+        ? `${NOTFICATIONS_MESSAGES.tracking.EN.part_one}${msg.body.restaurant_name}${NOTFICATIONS_MESSAGES.tracking.EN.part_two}`
         : `${msg.body.restaurant_name} ${NOTFICATIONS_MESSAGES.tracking.HE}`;
     if (LANGUAGE === LANGUAGES.HE) {
       message_element.style.direction = "rtl";
@@ -246,7 +259,7 @@ const createTrackButton = () => {
 };
 
 window.onload = () => {
-  console.log("Wolt-Chrome-Extension Content Script Loaded");
+  // console.log("Woltor Content Script Loaded");
   chrome.runtime.connect().postMessage({
     title: MESSAGE_TITLES.sending.to_background.can_track_availablity,
     body: { url: window.location.href },
