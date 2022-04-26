@@ -52,7 +52,7 @@ googleanAlyticsSrc.setAttribute(
   "src",
   chrome.runtime.getURL(GOOGLE_ANALYTICS.file)
 );
-document.body.appendChild(s);
+document.body.appendChild(googleanAlyticsSrc);
 const googleanAlyticsDataLayer = document.createElement("script");
 googleanAlyticsDataLayer.innerHTML = GOOGLE_ANALYTICS.DataLayer;
 
