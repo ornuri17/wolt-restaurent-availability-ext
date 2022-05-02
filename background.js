@@ -131,8 +131,11 @@ const checking_availability_interval = setInterval(
   checking_availability_interval_secs * 1000
 );
 
+"restaurant_page_validation", "wolt_site_validation";
+
 const canTrackAvailablity = async (url, lang = "en") => {
-  if (validateWoltURL(url)) {
+  const validateURL = validateWoltURL(url);
+  if (validateURL.title === "restaurant_page_validation") {
     const slug = getRestaurentSlugFromURL(url);
     const restaurants = await getTrackedRestaurantsFromChromeStorage();
     const restaurant_details = await getRestaurantDetails(slug, lang);
@@ -149,6 +152,8 @@ const canTrackAvailablity = async (url, lang = "en") => {
         }
       }
     }
+  } else if (validateURL.title === "wolt_site_validation") {
+    return validateURL;
   }
 };
 
@@ -181,11 +186,32 @@ const addTrackedRestaurant = async (url, lang = "en") => {
 };
 
 const validateWoltURL = (url) => {
-  return (
+  debugger;
+  const restaurant_page_validation =
     url.toLowerCase().indexOf("wolt.com") !== -1 &&
     (url.toLowerCase().indexOf("restaurant") !== -1 ||
-      url.toLowerCase().indexOf("venue") !== -1)
-  );
+      url.toLowerCase().indexOf("venue") !== -1);
+
+  const wolt_site_validation =
+    url.toLowerCase().indexOf("wolt.com") !== -1 &&
+    url.toLowerCase().indexOf("category") !== -1;
+
+  if (restaurant_page_validation) {
+    return {
+      title: "restaurant_page_validation",
+      valid: restaurant_page_validation,
+    };
+  } else if (wolt_site_validation) {
+    return {
+      title: "wolt_site_validation",
+      valid: wolt_site_validation,
+    };
+  } else {
+    return {
+      title: "not matched",
+      valid: false,
+    };
+  }
 };
 
 const getRestaurentSlugFromURL = (url) => {
@@ -279,11 +305,15 @@ chrome.runtime.onConnect.addListener((port) => {
       msg.title === MESSAGE_TITLES.reading.from_content.can_track_availablity
     ) {
       const restaurant_details = await canTrackAvailablity(msg.body.url);
-      if (restaurant_details) {
+      if (restaurant_details.open && !restaurant_details.online) {
         sendMessageToContentScript(
           MESSAGE_TITLES.sending.to_content_script.create_track_button,
           { restaurant_details }
         );
+      } else {
+        sendMessageToContentScript(restaurant_details.title, {
+          restaurant_details,
+        });
       }
     }
   });
@@ -296,11 +326,16 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
       if (tabs.length > 0) {
         let url = tabs[0].url;
         let restaurant_details = await canTrackAvailablity(url);
-        if (restaurant_details) {
+        if (!restaurant_details) return;
+        if (restaurant_details.open) {
           sendMessageToContentScript(
             MESSAGE_TITLES.sending.to_content_script.create_track_button,
             { restaurant_details }
           );
+        } else {
+          sendMessageToContentScript(restaurant_details.title, {
+            restaurant_details,
+          });
         }
       }
     }

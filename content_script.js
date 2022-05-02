@@ -216,6 +216,8 @@ chrome.runtime.onMessage.addListener((msg) => {
       message_element.style.direction = "rtl";
     }
     showMessageBar(message_element);
+  } else if (msg.title === "wolt_site_validation" && msg.body) {
+    createButtonOnVenueCard();
   }
 });
 
@@ -266,4 +268,43 @@ window.onload = () => {
     title: MESSAGE_TITLES.sending.to_background.can_track_availablity,
     body: { url: window.location.href },
   });
+};
+
+const createButtonOnVenueCard = () => {
+  const temporarily_offline_restaurants = document.querySelectorAll(
+    "div[class^='VenueCard__OverlayLayer-sc']"
+  );
+  if (temporarily_offline_restaurants) {
+    temporarily_offline_restaurants.forEach((restaurantElement, i) => {
+      if (restaurantElement.children[0].innerHTML === "Temporarily offline") {
+        let tracking_button = document.createElement("button");
+        tracking_button.style.borderRadius = "5px";
+        tracking_button.style.border = "1px solid yellow";
+        // tracking_button.style.background = "none";
+        tracking_button.innerHTML = "trakkk";
+        tracking_button.style.color = "yellow";
+        tracking_button.style.zIndex = "5000";
+        tracking_button.style.position = "fixed";
+        tracking_button.onclick = (e) => {
+          e.stopPropagation();
+          chrome.runtime.connect().postMessage({
+            title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+            body: {
+              url: window.location.href,
+              lang: getLanguage().toLowerCase(),
+            },
+          });
+        };
+        let img = document.createElement("img");
+        img.style.width = "16px";
+        img.style.height = "16px";
+        img.src = chrome.runtime.getURL("bell.png");
+
+        tracking_button.appendChild(img);
+        restaurantElement.appendChild(tracking_button);
+        restaurantElement.firstChild.remove();
+      }
+    });
+    console.log(temporarily_offline_restaurants);
+  }
 };
