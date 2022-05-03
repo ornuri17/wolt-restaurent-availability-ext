@@ -14,6 +14,7 @@ const MESSAGE_TITLES = {
     from_content: {
       add_tracked_restaurant: "addTrackedRestaurant",
       can_track_availablity: "canTrackAvailablity",
+      get_tracked_restaurants: "getTrackedRestaurants",
     },
     from_popup: { delete_tracked_restaurant: "deleteTrackedRestaurant" },
   },
@@ -22,6 +23,7 @@ const MESSAGE_TITLES = {
       restaurants_are_online: "RestaurantsAreOnline",
       create_track_button: "createTrackButton",
       show_tracked_restaurant_message: "showTrackedRestaurantMessage",
+      tracked_restaurants: "trackedRestaurants",
     },
     to_popup: {
       update_tracked_restaurants_view: "updateTrackedRestaurantsView",
@@ -153,7 +155,7 @@ const canTrackAvailablity = async (url, lang = "en") => {
       }
     }
   } else if (validateURL.title === "wolt_site_validation") {
-    return validateURL;
+    return false;
   }
 };
 
@@ -170,11 +172,13 @@ const addTrackedRestaurant = async (url, lang = "en") => {
           restaurants,
         }
       );
+      const tracked_restaurants = getTrackedRestaurantsFromChromeStorage();
       sendMessageToContentScript(
         MESSAGE_TITLES.sending.to_content_script
           .show_tracked_restaurant_message,
         {
           restaurant_name: restaurant_details.name,
+          tracked_restaurants,
         }
       );
     } else {
@@ -186,7 +190,6 @@ const addTrackedRestaurant = async (url, lang = "en") => {
 };
 
 const validateWoltURL = (url) => {
-  debugger;
   const restaurant_page_validation =
     url.toLowerCase().indexOf("wolt.com") !== -1 &&
     (url.toLowerCase().indexOf("restaurant") !== -1 ||
@@ -315,6 +318,15 @@ chrome.runtime.onConnect.addListener((port) => {
           restaurant_details,
         });
       }
+    } else if (
+      msg.title === MESSAGE_TITLES.reading.from_content.get_tracked_restaurants
+    ) {
+      const tracked_restaurants =
+        await getTrackedRestaurantsFromChromeStorage();
+      sendMessageToContentScript(
+        MESSAGE_TITLES.sending.to_content_script.tracked_restaurants,
+        tracked_restaurants
+      );
     }
   });
 });
@@ -326,16 +338,18 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
       if (tabs.length > 0) {
         let url = tabs[0].url;
         let restaurant_details = await canTrackAvailablity(url);
-        if (!restaurant_details) return;
-        if (restaurant_details.open) {
+        if (restaurant_details) {
           sendMessageToContentScript(
             MESSAGE_TITLES.sending.to_content_script.create_track_button,
             { restaurant_details }
           );
         } else {
-          sendMessageToContentScript(restaurant_details.title, {
-            restaurant_details,
-          });
+          const tracked_restaurants =
+            await getTrackedRestaurantsFromChromeStorage();
+          sendMessageToContentScript(
+            MESSAGE_TITLES.sending.to_content_script.tracked_restaurants,
+            tracked_restaurants
+          );
         }
       }
     }
