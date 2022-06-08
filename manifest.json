@@ -1,26 +1,26 @@
 {
-  "name": "Woltor",
-  "description": "Let you know when the restaurant is want to order from is online!",
-  "version": "1.0",
-  "manifest_version": 3,
-  "background": {
-    "service_worker": "background.js"
-  },
-  "permissions": ["storage", "tabs", "activeTab", "webNavigation"],
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://*/*", "http://*/*"],
-      "js": ["content_script.js"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["bell.png", "googleAnalytics.js"],
-      "matches": ["https://*/*", "http://*/*"]
-    }
-  ],
-  "icons": { "16": "icon.png" }
+	"name": "Woltor",
+	"description": "Let you know when the restaurant is want to order from is online!",
+	"version": "1.0",
+	"manifest_version": 3,
+	"background": {
+		"service_worker": "background.js"
+	},
+	"permissions": ["storage", "tabs", "activeTab", "webNavigation"],
+	"action": {
+		"default_popup": "popup.html"
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://*/*", "http://*/*"],
+			"js": ["content_script.js"]
+		}
+	],
+	"web_accessible_resources": [
+		{
+			"resources": ["bell.png", "googleAnalytics.js", "grey-bell.png"],
+			"matches": ["https://*/*", "http://*/*"]
+		}
+	],
+	"icons": { "16": "icon.png" }
 }
