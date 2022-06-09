@@ -202,6 +202,11 @@ chrome.runtime.onMessage.addListener((msg) => {
 				attributes: false,
 				characterData: false,
 			});
+		} else if (
+			document.URL.includes("category" || "grocery_retail" || "stores")
+		) {
+			TRACKED_RESTAURANTS = msg.body;
+			createButtonOnVenueCard();
 		} else {
 			createTrackButton();
 		}
@@ -224,7 +229,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 		msg.title === MESSAGE_TITLES.reading.from_background.tracked_restaurants &&
 		msg.body
 	) {
-		TRACKED_RESTAURANTS = msg.body;
+		TRACKED_RESTAURANTS = { tracked_restaurants: msg.body };
 		createButtonOnVenueCard();
 	}
 });
@@ -291,46 +296,59 @@ const createButtonOnVenueCard = () => {
 	);
 	if (temporarily_offline_restaurants) {
 		temporarily_offline_restaurants.forEach((restaurantElement) => {
-			const restaurantURL = `https://wolt.com${restaurantElement.parentElement.parentElement.parentElement.parentElement.parentElement.getAttribute(
+			const restaurantMainElement =
+				restaurantElement.parentElement.parentElement.parentElement
+					.parentElement.parentElement;
+			const isbottonexist = restaurantMainElement.querySelector("#venueButton");
+			const restaurantURL = `https://wolt.com${restaurantMainElement.getAttribute(
 				"href"
 			)}`;
 			const slug = getRestaurentSlugFromURL(restaurantURL);
-			const restaurantSlugLength = TRACKED_RESTAURANTS.filter(
-				(r) => r.slug === slug
-			).length;
-			if (
-				TRACKED_RESTAURANTS.filter((r) => r.slug === slug).length < 1 &&
-				restaurantElement.innerHTML === "Temporarily offline"
+			const restaurantSlugLength =
+				TRACKED_RESTAURANTS.tracked_restaurants.filter((r) => r.slug === slug)
+					.length < 1;
+
+			if (!isbottonexist) {
+				if (
+					restaurantSlugLength &&
+					restaurantElement.innerHTML === "Temporarily offline"
+				) {
+					const tracking_button = document.createElement("button");
+					tracking_button.id = "venueButton";
+					tracking_button.style.borderRadius = "50%";
+					tracking_button.style.border = "2px solid grey";
+					// tracking_button.style.background = "none";
+					tracking_button.style.zIndex = "5000";
+					tracking_button.style.position = "fixed";
+					tracking_button.style.marginTop = "60px";
+					tracking_button.onclick = (e) => {
+						tracking_button.style.display = "none";
+						e.preventDefault();
+						chrome.runtime.connect().postMessage({
+							title:
+								MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+							body: {
+								url: restaurantURL,
+								lang: getLanguage().toLowerCase(),
+							},
+						});
+					};
+					const img = document.createElement("img");
+					img.style.width = "30px";
+					img.style.height = "30px";
+					img.style.padding = "5px";
+					img.style.marginBottom = "3px";
+					img.style.cursor = "pointer";
+					img.src = chrome.runtime.getURL("grey-bell.png");
+
+					tracking_button.appendChild(img);
+					restaurantElement.parentElement.appendChild(tracking_button);
+				}
+			} else if (
+				isbottonexist.style.display === "none" &&
+				TRACKED_RESTAURANTS.restaurant_details.slug === slug
 			) {
-				const tracking_button = document.createElement("button");
-				tracking_button.style.borderRadius = "50%";
-				tracking_button.style.border = "2px solid grey";
-				// tracking_button.style.background = "none";
-				tracking_button.style.zIndex = "5000";
-				tracking_button.style.position = "fixed";
-				tracking_button.style.marginTop = "60px";
-				tracking_button.onclick = (e) => {
-					e.preventDefault();
-					tracking_button.disabled = true;
-
-					chrome.runtime.connect().postMessage({
-						title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-						body: {
-							url: restaurantURL,
-							lang: getLanguage().toLowerCase(),
-						},
-					});
-				};
-				const img = document.createElement("img");
-				img.style.width = "30px";
-				img.style.height = "30px";
-				img.style.padding = "5px";
-				img.style.marginBottom = "3px";
-				img.style.cursor = "pointer";
-				img.src = chrome.runtime.getURL("grey-bell.png");
-
-				tracking_button.appendChild(img);
-				restaurantElement.parentElement.appendChild(tracking_button);
+				isbottonexist.style.display = "block";
 			}
 		});
 		console.log(temporarily_offline_restaurants);

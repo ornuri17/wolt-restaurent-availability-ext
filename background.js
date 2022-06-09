@@ -299,9 +299,13 @@ chrome.runtime.onConnect.addListener((port) => {
 				msg.body.deleted_restaurant_url
 			);
 			if (restaurant_details) {
+				debugger;
 				sendMessageToContentScript(
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
-					{ restaurant_details }
+					{
+						restaurant_details,
+						tracked_restaurants: getTrackedRestaurantsFromChromeStorage(),
+					}
 				);
 			}
 		} else if (
@@ -346,7 +350,6 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
 				} else {
 					const tracked_restaurants =
 						await getTrackedRestaurantsFromChromeStorage();
-					debugger;
 					sendMessageToContentScript(
 						MESSAGE_TITLES.sending.to_content_script.tracked_restaurants,
 						tracked_restaurants
