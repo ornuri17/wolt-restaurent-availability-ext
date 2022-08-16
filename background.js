@@ -172,7 +172,8 @@ const addTrackedRestaurant = async (url, lang = "en") => {
 					restaurants,
 				}
 			);
-			const tracked_restaurants = getTrackedRestaurantsFromChromeStorage();
+			const tracked_restaurants =
+				await getTrackedRestaurantsFromChromeStorage();
 			sendMessageToContentScript(
 				MESSAGE_TITLES.sending.to_content_script
 					.show_tracked_restaurant_message,
@@ -289,7 +290,7 @@ chrome.runtime.onConnect.addListener((port) => {
 		if (
 			msg.title === MESSAGE_TITLES.reading.from_content.add_tracked_restaurant
 		) {
-			addTrackedRestaurant(msg.body.url, msg.body.lang);
+			await addTrackedRestaurant(msg.body.url, msg.body.lang);
 		} else if (
 			msg.title === MESSAGE_TITLES.reading.from_popup.delete_tracked_restaurant
 		) {
@@ -299,7 +300,6 @@ chrome.runtime.onConnect.addListener((port) => {
 				msg.body.deleted_restaurant_url
 			);
 			if (restaurant_details) {
-				debugger;
 				sendMessageToContentScript(
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
 					{

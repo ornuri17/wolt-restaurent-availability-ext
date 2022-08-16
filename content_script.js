@@ -290,6 +290,47 @@ const getRestaurentSlugFromURL = (url) => {
 	return url.substring(url.lastIndexOf("/") + 1);
 };
 
+const createVenueCrardTrackBottonContainer = () => {
+	const venueCrardTrackBottonContainer = document.createElement("div");
+	venueCrardTrackBottonContainer.style.position = "relative";
+	venueCrardTrackBottonContainer.style.borderTopStyle = "outset";
+	venueCrardTrackBottonContainer.style.borderTopColor = "#1fa9e4";
+	venueCrardTrackBottonContainer.style.zIndex = "5000";
+
+	return venueCrardTrackBottonContainer;
+};
+
+const createVenueCrardTrackBotton = (restaurantURL) => {
+	const language = getLanguage();
+	const tracking_button = document.createElement("div");
+	tracking_button.id = "venueButton";
+	tracking_button.style.padding = "0.2rem";
+	tracking_button.style.fontSize = "1rem";
+	tracking_button.innerText =
+		language === LANGUAGES.EN
+			? TEXTS.tracking_button.EN
+			: TEXTS.tracking_button.HE;
+
+	tracking_button.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		VenueCrardTrackBottonHandleClick(restaurantURL);
+		tracking_button.style.display = "none";
+	});
+	return tracking_button;
+};
+
+const VenueCrardTrackBottonHandleClick = (restaurantURL) => {
+	chrome.runtime.connect().postMessage({
+		title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+		body: {
+			url: restaurantURL,
+			lang: getLanguage().toLowerCase(),
+		},
+	});
+};
+
 const createButtonOnVenueCard = () => {
 	const temporarily_offline_restaurants = document.querySelectorAll(
 		"p[class^='VenueCard__OverlayText']"
@@ -313,36 +354,13 @@ const createButtonOnVenueCard = () => {
 					restaurantSlugLength &&
 					restaurantElement.innerHTML === "Temporarily offline"
 				) {
-					const tracking_button = document.createElement("button");
-					tracking_button.id = "venueButton";
-					tracking_button.style.borderRadius = "50%";
-					tracking_button.style.border = "2px solid grey";
-					// tracking_button.style.background = "none";
-					tracking_button.style.zIndex = "5000";
-					tracking_button.style.position = "fixed";
-					tracking_button.style.marginTop = "60px";
-					tracking_button.onclick = (e) => {
-						tracking_button.style.display = "none";
-						e.preventDefault();
-						chrome.runtime.connect().postMessage({
-							title:
-								MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-							body: {
-								url: restaurantURL,
-								lang: getLanguage().toLowerCase(),
-							},
-						});
-					};
-					const img = document.createElement("img");
-					img.style.width = "30px";
-					img.style.height = "30px";
-					img.style.padding = "5px";
-					img.style.marginBottom = "3px";
-					img.style.cursor = "pointer";
-					img.src = chrome.runtime.getURL("grey-bell.png");
+					const trackBottonContainer = createVenueCrardTrackBottonContainer();
+					const tracking_button = createVenueCrardTrackBotton(restaurantURL);
 
-					tracking_button.appendChild(img);
-					restaurantElement.parentElement.appendChild(tracking_button);
+					trackBottonContainer.appendChild(tracking_button);
+					restaurantElement.parentElement.parentElement.parentElement.lastChild.appendChild(
+						trackBottonContainer
+					);
 				}
 			} else if (
 				isbottonexist.style.display === "none" &&
