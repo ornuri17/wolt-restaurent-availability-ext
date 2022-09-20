@@ -83,7 +83,7 @@ const showMessageBar = (element, multiline = false) => {
 	popup.style.backgroundSize = "20%";
 	popup.style.fontFamily =
 		'system-ui,-apple-system,BlinkMacSystemFont,"Roboto","Open Sans",sans-serif;';
-	popup.style.zIndex = "100";
+	popup.style.zIndex = "999999";
 	popup.style.alignItems = "center";
 	popup.style.justifyContent = "center";
 	popup.style.fontSize = "12px";
@@ -293,23 +293,26 @@ const getRestaurentSlugFromURL = (url) => {
 const createVenueCrardTrackBottonContainer = () => {
 	const venueCrardTrackBottonContainer = document.createElement("div");
 	venueCrardTrackBottonContainer.style.position = "relative";
-	venueCrardTrackBottonContainer.style.borderTopStyle = "outset";
-	venueCrardTrackBottonContainer.style.borderTopColor = "#1fa9e4";
 	venueCrardTrackBottonContainer.style.zIndex = "5000";
 
 	return venueCrardTrackBottonContainer;
+};
+
+const createVenueCrardTrackBottonImg = () => {
+	const tracking_img = document.createElement("img");
+	tracking_img.src = chrome.runtime.getURL("grey-bell.png");
+	tracking_img.style.width = "1.5rem";
+	tracking_img.style.height = "1.5rem";
+
+	return tracking_img;
 };
 
 const createVenueCrardTrackBotton = (restaurantURL) => {
 	const language = getLanguage();
 	const tracking_button = document.createElement("div");
 	tracking_button.id = "venueButton";
-	tracking_button.style.padding = "0.2rem";
-	tracking_button.style.fontSize = "1rem";
-	tracking_button.innerText =
-		language === LANGUAGES.EN
-			? TEXTS.tracking_button.EN
-			: TEXTS.tracking_button.HE;
+
+	const trackingAvailableToggle = createVenueButtonToggle();
 
 	tracking_button.addEventListener("click", (e) => {
 		e.preventDefault();
@@ -318,7 +321,35 @@ const createVenueCrardTrackBotton = (restaurantURL) => {
 		VenueCrardTrackBottonHandleClick(restaurantURL);
 		tracking_button.style.display = "none";
 	});
+
+	tracking_button.addEventListener("mouseover", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		tracking_button.appendChild(trackingAvailableToggle);
+	});
+
+	tracking_button.addEventListener("mouseout", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		tracking_button.removeChild(trackingAvailableToggle);
+	});
+
 	return tracking_button;
+};
+
+const createVenueButtonToggle = () => {
+	const trackingAvailableToggle = document.createElement("div");
+	trackingAvailableToggle.innerText = TEXTS.tracking_button.EN;
+	trackingAvailableToggle.id = "trackingAvailableToggle";
+	trackingAvailableToggle.style.position = "fixed";
+	trackingAvailableToggle.style.marginLeft = "2rem";
+	trackingAvailableToggle.style.fontWeight = "100";
+	trackingAvailableToggle.style.fontSize = "small";
+	trackingAvailableToggle.style.padding = "0.2rem";
+	trackingAvailableToggle.style.borderRadius = "15px";
+	return trackingAvailableToggle;
 };
 
 const VenueCrardTrackBottonHandleClick = (restaurantURL) => {
@@ -331,42 +362,55 @@ const VenueCrardTrackBottonHandleClick = (restaurantURL) => {
 	});
 };
 
+const venueCardButtonMetaData = (restaurantElement) => {
+	const restaurantMainElement =
+		restaurantElement.parentElement.parentElement.parentElement.parentElement
+			.parentElement;
+	const isbottonexist = restaurantMainElement.querySelector("#venueButton");
+	const restaurantURL = `https://wolt.com${restaurantMainElement.getAttribute(
+		"href"
+	)}`;
+	const slug = getRestaurentSlugFromURL(restaurantURL);
+	const restaurantSlugLength =
+		TRACKED_RESTAURANTS.tracked_restaurants.filter((r) => r.slug === slug)
+			.length < 1;
+	return {
+		restaurantMainElement,
+		isbottonexist,
+		restaurantURL,
+		slug,
+		restaurantSlugLength,
+	};
+};
+
 const createButtonOnVenueCard = () => {
 	const temporarily_offline_restaurants = document.querySelectorAll(
 		"p[class^='VenueCard__OverlayText']"
 	);
 	if (temporarily_offline_restaurants) {
 		temporarily_offline_restaurants.forEach((restaurantElement) => {
-			const restaurantMainElement =
-				restaurantElement.parentElement.parentElement.parentElement
-					.parentElement.parentElement;
-			const isbottonexist = restaurantMainElement.querySelector("#venueButton");
-			const restaurantURL = `https://wolt.com${restaurantMainElement.getAttribute(
-				"href"
-			)}`;
-			const slug = getRestaurentSlugFromURL(restaurantURL);
-			const restaurantSlugLength =
-				TRACKED_RESTAURANTS.tracked_restaurants.filter((r) => r.slug === slug)
-					.length < 1;
+			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
 
-			if (!isbottonexist) {
+			if (!buttonMetaData.isbottonexist) {
 				if (
-					restaurantSlugLength &&
+					buttonMetaData.restaurantSlugLength &&
 					restaurantElement.innerHTML === "Temporarily offline"
 				) {
 					const trackBottonContainer = createVenueCrardTrackBottonContainer();
-					const tracking_button = createVenueCrardTrackBotton(restaurantURL);
-
-					trackBottonContainer.appendChild(tracking_button);
-					restaurantElement.parentElement.parentElement.parentElement.lastChild.appendChild(
-						trackBottonContainer
+					const tracking_button = createVenueCrardTrackBotton(
+						buttonMetaData.restaurantURL
 					);
+					const tracking_img = createVenueCrardTrackBottonImg();
+
+					tracking_button.appendChild(tracking_img);
+					trackBottonContainer.appendChild(tracking_button);
+					restaurantElement.appendChild(trackBottonContainer);
 				}
 			} else if (
-				isbottonexist.style.display === "none" &&
-				TRACKED_RESTAURANTS.restaurant_details.slug === slug
+				buttonMetaData.isbottonexist.style.display === "none" &&
+				TRACKED_RESTAURANTS.restaurant_details.slug === buttonMetaData.slug
 			) {
-				isbottonexist.style.display = "block";
+				buttonMetaData.isbottonexist.style.display = "block";
 			}
 		});
 		console.log(temporarily_offline_restaurants);
