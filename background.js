@@ -340,8 +340,8 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
 		{ active: true, currentWindow: true },
 		async function (tabs) {
 			if (tabs.length > 0) {
-				let url = tabs[0].url;
-				let restaurant_details = await canTrackAvailablity(url);
+				const url = tabs[0].url;
+				const restaurant_details = await canTrackAvailablity(url);
 				if (restaurant_details) {
 					sendMessageToContentScript(
 						MESSAGE_TITLES.sending.to_content_script.create_track_button,
