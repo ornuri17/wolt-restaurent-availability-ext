@@ -1,7 +1,7 @@
 {
 	"name": "Woltor",
 	"description": "Let you know when the restaurant is want to order from is online!",
-	"version": "1.0",
+	"version": "0.0.0.1",
 	"manifest_version": 3,
 	"background": {
 		"service_worker": "background.js"
