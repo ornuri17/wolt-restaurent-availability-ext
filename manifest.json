@@ -1,6 +1,6 @@
 {
 	"name": "Woltor",
-	"description": "Let you know when the restaurant is want to order from is online!",
+	"description": "Woltor identifies temporarily offline restaurants on Wolt.com and allows you to track the restaurant availability, you would like to order from. Woltor will wait for you until your favorite restaurant is back online. When that happens, Woltor will pop up a notification in your Chrome browser that enables you to go directly to the restaurant page on Wolt.com and start your order.",
 	"version": "0.0.0.1",
 	"manifest_version": 3,
 	"background": {
