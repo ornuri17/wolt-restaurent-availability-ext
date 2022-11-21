@@ -45,6 +45,8 @@ const SELECTORS = {
 	order_together_button: "a[class^='GroupOrderButton-module']",
 };
 
+let observer;
+
 const GOOGLE_ANALYTICS = {
 	file: "googleAnalytics.js",
 	DataLayer: `window.dataLayer = window.dataLayer || []function gtag() {dataLayer.push(arguments);}gtag("js", new Date());gtag("config", "G-VF6M91Y2SH");`,
@@ -184,11 +186,11 @@ chrome.runtime.onMessage.addListener((msg) => {
 	) {
 		LANGUAGE = getLanguage();
 		let favoriteButton = document.querySelector(SELECTORS.favorite_button);
-		if (!SELECTORS.favorite_button) {
-			let observer = new MutationObserver((mutations) => {
+		if (!favoriteButton) {
+			observer = new MutationObserver((mutations) => {
 				/*
-        this button below should be available first on restaurant page in walt.com
-        so here we waiting for it's creation to create a compatible wolt.com site button
+        this button below should be available first on restaurant page in wolt.com
+        so here we wait for its creation to create a compatible wolt.com site button
         */
 				favoriteButton = document.querySelector(SELECTORS.favorite_button);
 				if (favoriteButton) {
@@ -275,12 +277,16 @@ const createTrackButton = () => {
 	}
 };
 
-window.onload = () => {
-	// console.log("Woltor Content Script Loaded");
+const canTrackAvailablity = () => {
 	chrome.runtime.connect().postMessage({
 		title: MESSAGE_TITLES.sending.to_background.can_track_availablity,
 		body: { url: window.location.href },
 	});
+};
+
+window.onload = () => {
+	console.log("Woltor Content Script Loaded");
+	canTrackAvailablity();
 	chrome.runtime.connect().postMessage({
 		title: MESSAGE_TITLES.sending.to_background.get_tracked_restaurants,
 	});
@@ -411,6 +417,5 @@ const createButtonOnVenueCard = () => {
 				buttonMetaData.isbottonexist.style.display = "block";
 			}
 		});
-		console.log(temporarily_offline_restaurants);
 	}
 };

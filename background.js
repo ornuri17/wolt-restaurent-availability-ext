@@ -133,8 +133,6 @@ const checking_availability_interval = setInterval(
 	checking_availability_interval_secs * 1000
 );
 
-"restaurant_page_validation", "wolt_site_validation";
-
 const canTrackAvailablity = async (url, lang = "en") => {
 	const validateURL = validateWoltURL(url);
 	if (validateURL.title === "restaurant_page_validation") {
@@ -142,19 +140,23 @@ const canTrackAvailablity = async (url, lang = "en") => {
 		const restaurants = await getTrackedRestaurantsFromChromeStorage();
 		const restaurant_details = await getRestaurantDetails(slug, lang);
 		if (restaurants.filter((r) => r.slug === slug).length > 0) {
+			console.log("Restaurant is already tracked");
 			return false;
 		} else {
 			if (!restaurant_details.open) {
+				console.log("Restaurant is closed");
 				return false;
 			} else {
 				if (!restaurant_details.online) {
 					return restaurant_details;
 				} else {
+					console.log("Restaurant is online");
 					return false;
 				}
 			}
 		}
 	} else if (validateURL.title === "wolt_site_validation") {
+		console.log("Not restaurant page");
 		return false;
 	}
 };
@@ -279,7 +281,9 @@ const getRestaurantDetails = async (slug, lang = "en") => {
 			? restaurant_data.results[0].url
 			: restaurant_data.results[0].public_url,
 		image: restaurant_data.results[0].listimage,
-		online: restaurant_data.results[0].online,
+		online:
+			restaurant_data.results[0].online &&
+			restaurant_data.results[0].alive === 1,
 		description: description || restaurant_data.results[0].description[0].value,
 		open: checkIfRestaurentIsOpen(restaurant_data.results[0].opening_times),
 	};
@@ -317,10 +321,6 @@ chrome.runtime.onConnect.addListener((port) => {
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
 					{ restaurant_details }
 				);
-			} else {
-				sendMessageToContentScript(restaurant_details.title, {
-					restaurant_details,
-				});
 			}
 		} else if (
 			msg.title === MESSAGE_TITLES.reading.from_content.get_tracked_restaurants
@@ -348,12 +348,14 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
 						{ restaurant_details }
 					);
 				} else {
-					const tracked_restaurants =
-						await getTrackedRestaurantsFromChromeStorage();
-					sendMessageToContentScript(
-						MESSAGE_TITLES.sending.to_content_script.tracked_restaurants,
-						tracked_restaurants
-					);
+					if (url.startsWith("http")) {
+						const tracked_restaurants =
+							await getTrackedRestaurantsFromChromeStorage();
+						sendMessageToContentScript(
+							MESSAGE_TITLES.sending.to_content_script.tracked_restaurants,
+							tracked_restaurants
+						);
+					}
 				}
 			}
 		}
