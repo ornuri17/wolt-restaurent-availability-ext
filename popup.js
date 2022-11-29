@@ -170,58 +170,118 @@ function initCarousel() {
 	moving = false;
 }
 
+const createCarouselNextButton = () => {
+	let carousel_next_button = document.createElement("div");
+	carousel_next_button.className = "carousel-button carousel-button-next";
+	return carousel_next_button;
+};
+
+const createCarouselPrevButton = () => {
+	let carousel_prev_button = document.createElement("div");
+	carousel_prev_button.className = "carousel-button carousel-button-prev";
+	return carousel_prev_button;
+};
+
+const createEmptyState = () => {
+	let empty_state = document.createElement("div");
+	empty_state.className = "empty_state";
+	empty_state.innerHTML = "You are not tracking any restaurant";
+	document.body.appendChild(empty_state);
+	return;
+};
+
+const createCarouselIndicatorsContainer = () => {
+	let carousel_indicators_container = document.createElement("div");
+	carousel_indicators_container.className = "carousel-indicators-container";
+	return carousel_indicators_container;
+};
+
+const createCarouselElement = () => {
+	let carousel_element = document.createElement("div");
+	carousel_element.className = "carousel-element";
+	return carousel_element;
+};
+
+const createRestaurantContainer = () => {
+	let restaurant_container = document.createElement("div");
+	restaurant_container.className = "restaurant-container";
+	return restaurant_container;
+};
+const createRestaurantPageLink = (restaurantUrl) => {
+	let restaurant_page_link = document.createElement("a");
+	restaurant_page_link.href = restaurantUrl;
+	restaurant_page_link.target = "_blank";
+	restaurant_page_link.className = "restaurant-page-link";
+	return restaurant_page_link;
+};
+
+const createRestaurantImg = (restaurantImg) => {
+	let restaurant_img = document.createElement("img");
+	restaurant_img.src = restaurantImg;
+	restaurant_img.className = "restaurant-img";
+	return restaurant_img;
+};
+
+const createRestaurantDetails = () => {
+	let restaurant_details = document.createElement("div");
+	restaurant_details.className = "restaurant-details";
+	return restaurant_details;
+};
+
+const createRestaurantName = (restaurantName) => {
+	let restaurant_name = document.createElement("span");
+	restaurant_name.innerHTML = restaurantName;
+	restaurant_name.className = "restaurant-name";
+	return restaurant_name;
+};
+
+const createRestaurantDescription = (restaurantDescription) => {
+	let restaurant_description = document.createElement("span");
+	restaurant_description.innerHTML = restaurantDescription;
+	restaurant_description.className = "restaurant-description";
+	return restaurant_description;
+};
+
+const createDeleteButtonWrapper = () => {
+	let delete_button_wrapper = document.createElement("div");
+	delete_button_wrapper.className = "delete-button-wrapper";
+	return delete_button_wrapper;
+};
+
+const createCarouselIndicators = () => {
+	let carousel_indicator = document.createElement("span");
+	carousel_indicator.className = "carousel-indicator";
+	return carousel_indicator;
+};
+
 const updateTrackedRestaurantsView = (restaurants) => {
 	let restaurants_container = document.getElementById("restaurants-container");
 	restaurants_container.innerHTML = "";
-	let carousel_next_button = document.createElement("div");
-	carousel_next_button.className = "carousel-button carousel-button-next";
-	let carousel_prev_button = document.createElement("div");
-	carousel_prev_button.className = "carousel-button carousel-button-prev";
-	let carousel_indicators_container = document.createElement("div");
-	carousel_indicators_container.className = "carousel-indicators-container";
+	const carousel_next_button = createCarouselNextButton();
+	const carousel_prev_button = createCarouselPrevButton();
+	const carousel_indicators_container = createCarouselIndicatorsContainer();
 
 	restaurants_container.appendChild(carousel_next_button);
 	restaurants_container.appendChild(carousel_prev_button);
 
 	if (restaurants.length === 0) {
-		let empty_state = document.createElement("div");
-		empty_state.className = "empty_state";
-		empty_state.innerHTML = "You are not tracking any restaurant";
-		document.body.appendChild(empty_state);
+		createEmptyState();
 		return;
 	}
 
 	for (let i = 0; i < restaurants.length; i++) {
-		let carousel_element = document.createElement("div");
-		carousel_element.className = "carousel-element";
-
-		let restaurant_container = document.createElement("div");
-		restaurant_container.className = "restaurant-container";
-
-		let restaurant_page_link = document.createElement("a");
-		restaurant_page_link.href = restaurants[i].url;
-		restaurant_page_link.target = "_blank";
-		restaurant_page_link.className = "restaurant-page-link";
-
-		let restaurant_img = document.createElement("img");
-		restaurant_img.src = restaurants[i].image;
-		restaurant_img.className = "restaurant-img";
-
-		let restaurant_details = document.createElement("div");
-		restaurant_details.className = "restaurant-details";
-
-		let restaurant_name = document.createElement("span");
-		restaurant_name.innerHTML = restaurants[i].name;
-		restaurant_name.className = "restaurant-name";
-
+		const carousel_element = createCarouselElement();
+		const restaurant_container = createRestaurantContainer();
+		const restaurant_page_link = createRestaurantPageLink(restaurants[i].url);
+		const restaurant_img = createRestaurantImg(restaurants[i].image);
+		const restaurant_details = createRestaurantDetails();
+		const restaurant_name = createRestaurantName(restaurants[i].name);
 		let br = document.createElement("br");
-		let restaurant_description = document.createElement("span");
-		restaurant_description.innerHTML = restaurants[i].description;
-		restaurant_description.className = "restaurant-description";
-
-		let delete_button_wrapper = document.createElement("div");
-		delete_button_wrapper.className = "delete-button-wrapper";
-
+		const restaurant_description = createRestaurantDescription(
+			restaurants[i].description
+		);
+		const delete_button_wrapper = createDeleteButtonWrapper();
+		// const { delete_button, delete_icon } = createDeleteButton();
 		let delete_button = document.createElement("span");
 		let delete_icon = document.createElement("img");
 		delete_icon.src = "delete.png";
@@ -239,9 +299,7 @@ const updateTrackedRestaurantsView = (restaurants) => {
 			updateTrackedRestaurantsView(getTrackedRestaurantsFromChromeStorage());
 			window.location.reload();
 		};
-
-		let carousel_indicator = document.createElement("span");
-		carousel_indicator.className = "carousel-indicator";
+		const carousel_indicator = createCarouselIndicators();
 
 		restaurant_page_link.appendChild(restaurant_img);
 		restaurant_page_link.appendChild(restaurant_details);
