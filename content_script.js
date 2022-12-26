@@ -236,6 +236,33 @@ chrome.runtime.onMessage.addListener((msg) => {
 	}
 });
 
+const createAudioIframe = () => {
+	const audio_iframe_element = document.createElement("iframe");
+	audio_iframe_element.src = chrome.runtime.getURL("service_bell_ring.mp3");
+	audio_iframe_element.allow = "autoplay";
+	return audio_iframe_element;
+};
+
+const createSoundAlert = () => {
+	const audio_element = document.createElement("audio");
+	audio_element.id = "woltor_alert";
+	audio_element.type = "audio/mpeg";
+	audio_element.src = chrome.runtime.getURL("service_bell_ring.mp3");
+	return audio_element;
+};
+
+const playAletSound = () => {
+	const audio_iframe_element = createAudioIframe();
+	const audio_element = createSoundAlert();
+	audio_iframe_element.appendChild(audio_element);
+	document.body.appendChild(audio_element);
+	audio_element.play();
+	showMessageBar(audio_element);
+
+	console.log("audio is created");
+};
+// playAletSound();
+
 const createTrackButton = () => {
 	if (!document.getElementById("tracking_button")) {
 		let tracking_button = document.createElement("button");
