@@ -90,7 +90,8 @@ const checkRestaurantAvailablity = async (restaurant) => {
 		`https://restaurant-api.wolt.com/v3/venues/slug/${restaurant.slug}`
 	);
 	response = await response.json();
-	restaurant.online = response.results[0].online;
+	restaurant.online =
+		response.results[0].online && response.results[0].alive === 1;
 	return restaurant;
 };
 
@@ -111,7 +112,8 @@ const checkRestaurantsAvailablity = async () => {
 			promises.push(checkRestaurantAvailablity(restaurant));
 		}
 		const results = await Promise.all(promises);
-		let availableRestaurants = results.filter((r) => r.online);
+		let availableRestaurants = results.filter((r) => r.online && r.open);
+		debugger;
 		if (availableRestaurants.length > 0) {
 			await notifyRestaurantsAreOnlineToActiveTab(availableRestaurants);
 		}
@@ -144,8 +146,7 @@ const canTrackAvailablity = async (url, lang = "en") => {
 			return false;
 		} else {
 			if (!restaurant_details.open) {
-				console.log("Restaurant is closed");
-				return false;
+				return restaurant_details;
 			} else {
 				if (!restaurant_details.online) {
 					return restaurant_details;
