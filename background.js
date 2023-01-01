@@ -113,7 +113,6 @@ const checkRestaurantsAvailablity = async () => {
 		}
 		const results = await Promise.all(promises);
 		let availableRestaurants = results.filter((r) => r.online && r.open);
-		debugger;
 		if (availableRestaurants.length > 0) {
 			await notifyRestaurantsAreOnlineToActiveTab(availableRestaurants);
 		}

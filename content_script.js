@@ -366,6 +366,8 @@ const createVenueButtonToggle = () => {
 	trackingAvailableToggle.style.marginLeft = "2rem";
 	trackingAvailableToggle.style.fontSize = "small";
 	trackingAvailableToggle.style.padding = "0.2rem";
+	trackingAvailableToggle.style.left = "0";
+	trackingAvailableToggle.style.right = "30px";
 	return trackingAvailableToggle;
 };
 
