@@ -409,8 +409,8 @@ const createButtonOnVenueCard = () => {
 	const temporarily_offline_and_closed_restaurants = document.querySelectorAll(
 		SELECTORS.temporarily_offline_and_closed_restaurants
 	);
-	LANGUAGE = getLanguage();
 	if (temporarily_offline_and_closed_restaurants) {
+		LANGUAGE = getLanguage();
 		temporarily_offline_and_closed_restaurants.forEach((restaurantElement) => {
 			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
 
