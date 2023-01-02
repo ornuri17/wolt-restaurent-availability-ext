@@ -52,6 +52,7 @@ const SELECTORS = {
 const RESTAURANT_STATUS = {
 	temporarilyOffline: "temporarily offline",
 	closed: "closed",
+	HE_closed_and_temporarilyOffline: "סגור כרגע",
 };
 const DISPLAY = {
 	none: "none",
@@ -360,7 +361,7 @@ const createVenueCrardTrackBotton = (restaurantURL) => {
 
 const createVenueButtonToggle = () => {
 	const trackingAvailableToggle = document.createElement("div");
-	trackingAvailableToggle.innerText = TEXTS.tracking_button.EN;
+	trackingAvailableToggle.innerText = TEXTS.tracking_button[LANGUAGE];
 	trackingAvailableToggle.id = "trackingAvailableToggle";
 	trackingAvailableToggle.style.position = "fixed";
 	trackingAvailableToggle.style.marginLeft = "2rem";
@@ -408,6 +409,7 @@ const createButtonOnVenueCard = () => {
 	const temporarily_offline_and_closed_restaurants = document.querySelectorAll(
 		SELECTORS.temporarily_offline_and_closed_restaurants
 	);
+	LANGUAGE = getLanguage();
 	if (temporarily_offline_and_closed_restaurants) {
 		temporarily_offline_and_closed_restaurants.forEach((restaurantElement) => {
 			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
@@ -418,7 +420,9 @@ const createButtonOnVenueCard = () => {
 					(restaurantElement.innerHTML.toLowerCase() ===
 						RESTAURANT_STATUS.temporarilyOffline ||
 						restaurantElement.innerHTML.toLowerCase() ===
-							RESTAURANT_STATUS.closed)
+							RESTAURANT_STATUS.closed ||
+						restaurantElement.innerText ===
+							RESTAURANT_STATUS.HE_closed_and_temporarilyOffline)
 				) {
 					const trackBottonContainer = createVenueCrardTrackBottonContainer();
 					const tracking_button = createVenueCrardTrackBotton(
