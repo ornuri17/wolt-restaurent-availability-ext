@@ -67,6 +67,16 @@ const getLanguage = () => {
 		: LANGUAGES.EN;
 };
 
+const playAletSound = () => {
+	const audio_element = new Audio(
+		chrome.runtime.getURL("service_bell_ring.mp3")
+	);
+	document.body.appendChild(audio_element);
+	audio_element.play();
+	console.log("audio is created");
+	return audio_element;
+};
+
 const showMessageBar = (element, multiline = false) => {
 	let popup = document.getElementById("woltChromeExtensionPopup");
 	if (popup) {
@@ -110,9 +120,12 @@ const showMessageBar = (element, multiline = false) => {
 	element.style.borderRadius = "15px";
 	element.style.textAlign = "center";
 	element.style.lineHeight = "1.65";
+
+	const alertSound = playAletSound();
 	document.head.appendChild(styleElement);
 	popup.appendChild(element);
 	popup.appendChild(closePopup);
+	popup.appendChild(alertSound);
 	document.body.insertBefore(popup, document.body.firstChild);
 	setTimeout(() => {
 		document.getElementById("woltChromeExtensionPopup").remove();
@@ -235,33 +248,6 @@ chrome.runtime.onMessage.addListener((msg) => {
 		createButtonOnVenueCard();
 	}
 });
-
-const createAudioIframe = () => {
-	const audio_iframe_element = document.createElement("iframe");
-	audio_iframe_element.src = chrome.runtime.getURL("service_bell_ring.mp3");
-	audio_iframe_element.allow = "autoplay";
-	return audio_iframe_element;
-};
-
-const createSoundAlert = () => {
-	const audio_element = document.createElement("audio");
-	audio_element.id = "woltor_alert";
-	audio_element.type = "audio/mpeg";
-	audio_element.src = chrome.runtime.getURL("service_bell_ring.mp3");
-	return audio_element;
-};
-
-const playAletSound = () => {
-	const audio_iframe_element = createAudioIframe();
-	const audio_element = createSoundAlert();
-	audio_iframe_element.appendChild(audio_element);
-	document.body.appendChild(audio_element);
-	audio_element.play();
-	showMessageBar(audio_element);
-
-	console.log("audio is created");
-};
-// playAletSound();
 
 const createTrackButton = () => {
 	if (!document.getElementById("tracking_button")) {

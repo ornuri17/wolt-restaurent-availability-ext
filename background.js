@@ -316,7 +316,11 @@ chrome.runtime.onConnect.addListener((port) => {
 			msg.title === MESSAGE_TITLES.reading.from_content.can_track_availablity
 		) {
 			const restaurant_details = await canTrackAvailablity(msg.body.url);
-			if (restaurant_details.open && !restaurant_details.online) {
+			if (
+				restaurant_details &&
+				restaurant_details.open &&
+				!restaurant_details.online
+			) {
 				sendMessageToContentScript(
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
 					{ restaurant_details }
