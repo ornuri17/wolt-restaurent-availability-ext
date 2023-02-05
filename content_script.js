@@ -47,6 +47,8 @@ const SELECTORS = {
 		"p[class^='VenueCard__OverlayText']",
 	venue_button: "#venueButton",
 	tracking_button: "tracking_button",
+	search_input: "input[class^='sc-1web0kr-2']",
+	search_result_item: "p[class^='SearchResultItem__OverlayText']",
 };
 
 const RESTAURANT_STATUS = {
@@ -443,3 +445,14 @@ const createButtonOnVenueCard = () => {
 		});
 	}
 };
+
+const createSearchBarButton = () => {
+	const searchBar = document.createElement("input"); //document.querySelector(SELECTORS.search_input);
+	searchBar.addEventListener("input", () => {
+		const searchResult = document.querySelectorAll(
+			SELECTORS.search_result_item
+		);
+	});
+};
+
+window.document.addEventListener("DOMContentLoaded", createSearchBarButton());
