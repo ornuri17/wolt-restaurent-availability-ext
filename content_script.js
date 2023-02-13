@@ -300,8 +300,6 @@ const createButtonV2 = (order_together_button) => {
 	tracking_button.id = SELECTORS.tracking_button;
 	tracking_button.innerHTML = order_together_button_v2.innerHTML;
 	tracking_button.className = order_together_button_v2.className;
-	// tracking_button.style.fontSize = "1erm";
-	// tracking_button.style.display = "flex";
 	tracking_button.childNodes[0].innerHTML = TEXTS.tracking_button[LANGUAGE];
 	tracking_button.onclick = () => {
 		chrome.runtime.connect().postMessage({
