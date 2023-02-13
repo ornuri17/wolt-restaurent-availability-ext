@@ -333,6 +333,7 @@ const createVenueCrardTrackBotton = (restaurantURL) => {
 	const language = getLanguage();
 	const tracking_button = document.createElement("div");
 	tracking_button.id = "venueButton";
+	tracking_button.style.position = "relative";
 
 	const trackingAvailableToggle = createVenueButtonToggle();
 
@@ -366,11 +367,10 @@ const createVenueButtonToggle = () => {
 	trackingAvailableToggle.innerText = TEXTS.tracking_button[LANGUAGE];
 	trackingAvailableToggle.id = "trackingAvailableToggle";
 	trackingAvailableToggle.style.position = "fixed";
-	trackingAvailableToggle.style.marginLeft = "2rem";
 	trackingAvailableToggle.style.fontSize = "small";
-	trackingAvailableToggle.style.padding = "0.2rem";
-	trackingAvailableToggle.style.left = "0";
-	trackingAvailableToggle.style.right = "30px";
+	trackingAvailableToggle.style.top = "70%";
+	trackingAvailableToggle.style.left = "50%";
+	trackingAvailableToggle.style.transform = "translate(-50%, -50%)";
 	return trackingAvailableToggle;
 };
 
@@ -407,13 +407,27 @@ const venueCardButtonMetaData = (restaurantElement) => {
 	};
 };
 
-const createButtonOnVenueCard = () => {
-	const temporarily_offline_and_closed_restaurants = document.querySelectorAll(
-		SELECTORS.temporarily_offline_and_closed_restaurants
+const getTemporarilyOfflineRestaurants = () => {
+	const restaurantsFromVenueCard = document.querySelectorAll(
+		'[data-test-id^="venueCard."]'
 	);
-	if (temporarily_offline_and_closed_restaurants) {
-		LANGUAGE = getLanguage();
-		temporarily_offline_and_closed_restaurants.forEach((restaurantElement) => {
+	const temporarily_offline_restaurants = [];
+	restaurantsFromVenueCard.forEach((restaurant) => {
+		const temporarily_offline_element = restaurant.querySelector("p");
+		if (
+			temporarily_offline_element.innerText === "Temporarily offline" ||
+			temporarily_offline_element.innerText === "Closed"
+		) {
+			temporarily_offline_restaurants.push(temporarily_offline_element);
+		}
+	});
+	return temporarily_offline_restaurants;
+};
+
+const createButtonOnVenueCard = () => {
+	const temporarily_offline_restaurants = getTemporarilyOfflineRestaurants();
+	if (temporarily_offline_restaurants) {
+		temporarily_offline_restaurants.forEach((restaurantElement) => {
 			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
 
 			if (!buttonMetaData.isButtonExist) {
