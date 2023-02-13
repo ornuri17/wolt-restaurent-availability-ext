@@ -330,7 +330,7 @@ const createVenueCrardTrackBottonImg = () => {
 };
 
 const createVenueCrardTrackBotton = (restaurantURL) => {
-	const language = getLanguage();
+	LANGUAGE = getLanguage();
 	const tracking_button = document.createElement("div");
 	tracking_button.id = "venueButton";
 	tracking_button.style.position = "relative";
