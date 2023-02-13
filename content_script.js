@@ -185,7 +185,6 @@ chrome.runtime.onMessage.addListener((msg) => {
 		msg.body.restaurant_details
 	) {
 		LANGUAGE = getLanguage();
-		debugger;
 		let favoriteButton = document.querySelector(SELECTORS.favorite_button);
 		if (!favoriteButton) {
 			observer = new MutationObserver((mutations) => {
