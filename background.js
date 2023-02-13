@@ -361,3 +361,11 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function () {
 		}
 	);
 });
+
+// const getListRestaurantsDetailsFromVenueCard = async (url) => {
+// 	const slug = getRestaurentSlugFromURL(url);
+// 	const response = await fetch(
+// 		`https://consumer-api.wolt.com/v1/pages/venue-list/category-${slug}?lon=34.78493689999999&lat=32.065398599999995`
+// 	);
+// 	const venueCardListRestaurant = response.json();
+// };
