@@ -41,8 +41,10 @@ const NOTFICATIONS_MESSAGES = {
 };
 
 const SELECTORS = {
-	favorite_button: "button[class^='FavoriteButton-module__button___']",
-	order_together_button: "a[class^='GroupOrderButton-module']",
+	favorite_button: "button[aria-label='Favorite']",
+	order_together_parent:
+		"div[data-test-id='venue-content-header.root'] > div > div > div",
+	v1_order_together_button: "a[data-test-id='GroupOrderButton.Link']",
 	temporarily_offline_and_closed_restaurants:
 		"p[class^='VenueCard__OverlayText']",
 	venue_button: "#venueButton",
@@ -252,44 +254,84 @@ chrome.runtime.onMessage.addListener((msg) => {
 	}
 });
 
+const createButtonV1 = () => {
+	let tracking_button = document.createElement("button");
+	const favoriteButton = document.querySelector(SELECTORS.favorite_button);
+	tracking_button.id = SELECTORS.tracking_button;
+	tracking_button.innerHTML = favoriteButton.innerHTML;
+	tracking_button.className = favoriteButton.className;
+	if (document.querySelector(SELECTORS.order_together_parent)) {
+		if (LANGUAGE === LANGUAGES.EN) {
+			tracking_button.style.marginLeft = "16px";
+			tracking_button.style.marginRight = "0px";
+		} else {
+			tracking_button.style.marginRight = "16px";
+		}
+	}
+	tracking_button.style.fontSize = "1erm";
+	tracking_button.style.display = "flex";
+	tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
+	tracking_button.childNodes[0].remove();
+	tracking_button.onclick = () => {
+		chrome.runtime.connect().postMessage({
+			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
+		});
+		document.getElementById(SELECTORS.tracking_button).remove();
+	};
+	let img = document.createElement("img");
+	img.style.width = "16px";
+	img.style.height = "16px";
+	if (LANGUAGE === LANGUAGES.EN) {
+		img.style.marginRight = "12px";
+	} else {
+		img.style.marginLeft = "12px";
+	}
+	img.src = chrome.runtime.getURL("bell.png");
+
+	tracking_button.insertBefore(img, tracking_button.firstChild);
+	favoriteButton.parentNode.appendChild(tracking_button);
+};
+const createButtonV2 = (order_together_button) => {
+	let tracking_button = document.createElement("button");
+	const order_together_button_v2 = document.querySelector(
+		SELECTORS.order_together_parent
+	).children[1];
+	tracking_button.id = SELECTORS.tracking_button;
+	tracking_button.innerHTML = order_together_button_v2.innerHTML;
+	tracking_button.className = order_together_button_v2.className;
+	// tracking_button.style.fontSize = "1erm";
+	// tracking_button.style.display = "flex";
+	tracking_button.childNodes[0].innerHTML = TEXTS.tracking_button[LANGUAGE];
+	tracking_button.onclick = () => {
+		chrome.runtime.connect().postMessage({
+			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
+		});
+		document.getElementById(SELECTORS.tracking_button).remove();
+	};
+	let img = document.createElement("img");
+	img.style.width = "16px";
+	img.style.height = "16px";
+	if (LANGUAGE === LANGUAGES.EN) {
+		img.style.marginRight = "12px";
+	} else {
+		img.style.marginLeft = "12px";
+	}
+	img.src = chrome.runtime.getURL("bell.png");
+
+	tracking_button.insertBefore(img, tracking_button.firstChild);
+	order_together_button_v2.parentNode.appendChild(tracking_button);
+};
+
 const createTrackButton = () => {
 	if (!document.getElementById(SELECTORS.tracking_button)) {
-		let tracking_button = document.createElement("button");
-		const favoriteButton = document.querySelector(SELECTORS.favorite_button);
-		tracking_button.id = SELECTORS.tracking_button;
-		tracking_button.innerHTML = favoriteButton.innerHTML;
-		tracking_button.className = favoriteButton.className;
-		if (document.querySelector(SELECTORS.order_together_button)) {
-			if (LANGUAGE === LANGUAGES.EN) {
-				tracking_button.style.marginLeft = "16px";
-				tracking_button.style.marginRight = "0px";
-			} else {
-				tracking_button.style.marginRight = "16px";
-			}
-		}
-		tracking_button.style.fontSize = "1erm";
-		tracking_button.style.display = "flex";
-		tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
-		tracking_button.childNodes[0].remove();
-		tracking_button.onclick = () => {
-			chrome.runtime.connect().postMessage({
-				title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-				body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
-			});
-			document.getElementById(SELECTORS.tracking_button).remove();
-		};
-		let img = document.createElement("img");
-		img.style.width = "16px";
-		img.style.height = "16px";
-		if (LANGUAGE === LANGUAGES.EN) {
-			img.style.marginRight = "12px";
+		LANGUAGE = getLanguage();
+		if (document.querySelector(SELECTORS.order_together_parent) === null) {
+			createButtonV1();
 		} else {
-			img.style.marginLeft = "12px";
+			createButtonV2();
 		}
-		img.src = chrome.runtime.getURL("bell.png");
-
-		tracking_button.insertBefore(img, tracking_button.firstChild);
-		favoriteButton.parentNode.appendChild(tracking_button);
 	}
 };
 
@@ -461,7 +503,7 @@ const createButtonOnVenueCard = () => {
 };
 
 const createSearchBarButton = () => {
-	const searchBar = document.createElement("input"); //document.querySelector(SELECTORS.search_input);
+	const searchBar = document.createElement("input");
 	searchBar.addEventListener("input", () => {
 		const searchResult = document.querySelectorAll(
 			SELECTORS.search_result_item
