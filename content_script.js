@@ -292,7 +292,8 @@ const createButtonV1 = () => {
 	tracking_button.insertBefore(img, tracking_button.firstChild);
 	favoriteButton.parentNode.appendChild(tracking_button);
 };
-const createButtonV2 = (order_together_button) => {
+
+const createButtonV2 = () => {
 	let tracking_button = document.createElement("button");
 	const order_together_button_v2 = document.querySelector(
 		SELECTORS.order_together_parent
