@@ -90,7 +90,8 @@ const checkRestaurantAvailablity = async (restaurant) => {
 		`https://restaurant-api.wolt.com/v3/venues/slug/${restaurant.slug}`
 	);
 	response = await response.json();
-	restaurant.online = response.results[0].online;
+	restaurant.online =
+		response.results[0].online && response.results[0].alive === 1;
 	return restaurant;
 };
 
@@ -111,7 +112,7 @@ const checkRestaurantsAvailablity = async () => {
 			promises.push(checkRestaurantAvailablity(restaurant));
 		}
 		const results = await Promise.all(promises);
-		let availableRestaurants = results.filter((r) => r.online);
+		let availableRestaurants = results.filter((r) => r.online && r.open);
 		if (availableRestaurants.length > 0) {
 			await notifyRestaurantsAreOnlineToActiveTab(availableRestaurants);
 		}
@@ -144,8 +145,7 @@ const canTrackAvailablity = async (url, lang = "en") => {
 			return false;
 		} else {
 			if (!restaurant_details.open) {
-				console.log("Restaurant is closed");
-				return false;
+				return restaurant_details;
 			} else {
 				if (!restaurant_details.online) {
 					return restaurant_details;
@@ -316,7 +316,10 @@ chrome.runtime.onConnect.addListener((port) => {
 			msg.title === MESSAGE_TITLES.reading.from_content.can_track_availablity
 		) {
 			const restaurant_details = await canTrackAvailablity(msg.body.url);
-			if (restaurant_details.open && !restaurant_details.online) {
+			if (
+				restaurant_details ||
+				(restaurant_details.open && !restaurant_details.online)
+			) {
 				sendMessageToContentScript(
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
 					{ restaurant_details }

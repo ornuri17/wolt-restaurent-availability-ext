@@ -27,7 +27,14 @@ const LANGUAGES = {
 	HE: "HE",
 	EN: "EN",
 };
+
+const VENUE_PAGE_VERSIONS = {
+	V1: "V1",
+	V2: "V2",
+};
+
 let LANGUAGE;
+let VENUE_PAGE_VERSION;
 let TRACKED_RESTAURANTS = [];
 
 const NOTFICATIONS_MESSAGES = {
@@ -40,9 +47,34 @@ const NOTFICATIONS_MESSAGES = {
 	},
 };
 
+const V1_SELECTORS = {
+	EN_favorite_button: "button[aria-label='Favorite']",
+	HE_favorite_button: "button[aria-label='מועדפים']",
+	order_together_button: "a[data-test-id='GroupOrderButton.Link']",
+	search_input: "input[class^='sc-1web0kr-2']",
+	search_result_item: "p[class^='SearchResultItem__OverlayText']",
+};
+
+const V2_SELECTORS = {
+	order_together_button_parent:
+		"div[data-test-id='venue-content-header.root'] > div > div > div",
+};
+
+//this "SELECTORS" is work for v1 & v2
 const SELECTORS = {
-	favorite_button: "button[aria-label^='Favorite']",
-	order_together_button: "a[data-test-id^='GroupOrderButton.Link']",
+	restaurants_from_venue_card: "[data-test-id^='venueCard.']",
+	woltor_venue_button: "#venueButton",
+	woltor_tracking_button: "tracking_button",
+};
+
+const RESTAURANT_STATUS = {
+	temporarilyOffline: "temporarily offline",
+	closed: "closed",
+	HE_closed_and_temporarilyOffline: "סגור כרגע",
+};
+const DISPLAY = {
+	none: "none",
+	block: "block",
 };
 
 let observer;
@@ -185,14 +217,26 @@ chrome.runtime.onMessage.addListener((msg) => {
 		msg.body.restaurant_details
 	) {
 		LANGUAGE = getLanguage();
-		let favoriteButton = document.querySelector(SELECTORS.favorite_button);
-		if (!favoriteButton) {
+		VENUE_PAGE_VERSION = getVenuePageVersion();
+		let ButtonToCheckByVersion =
+			VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1
+				? LANGUAGE === LANGUAGES.HE
+					? document.querySelector(V1_SELECTORS.HE_favorite_button)
+					: document.querySelector(V1_SELECTORS.EN_favorite_button)
+				: document.querySelector(V2_SELECTORS.order_together_button_parent);
+
+		if (!ButtonToCheckByVersion) {
 			observer = new MutationObserver((mutations) => {
 				/*
         this button below should be available first on restaurant page in wolt.com
         so here we wait for its creation to create a compatible wolt.com site button
         */
-				favoriteButton = document.querySelector(SELECTORS.favorite_button);
+				ButtonToCheckByVersion =
+					VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1
+						? LANGUAGE === LANGUAGES.HE
+							? document.querySelector(V1_SELECTORS.HE_favorite_button)
+							: document.querySelector(V1_SELECTORS.EN_favorite_button)
+						: document.querySelector(V2_SELECTORS.order_together_button_parent);
 				if (favoriteButton) {
 					observer.disconnect();
 					createTrackButton();
@@ -236,14 +280,87 @@ chrome.runtime.onMessage.addListener((msg) => {
 	}
 });
 
-const createTrackButton = () => {
-	if (!document.getElementById("tracking_button")) {
-		let tracking_button = document.createElement("button");
-		const favoriteButton = document.querySelector(SELECTORS.favorite_button);
-		tracking_button.id = "tracking_button";
+const createButton = () => {
+	let tracking_button = document.createElement(
+		VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1 ? "button" : "div"
+	);
+
+	tracking_button.style.fontSize = "1rem";
+	tracking_button.style.display = "flex";
+	tracking_button.onclick = () => {
+		chrome.runtime.connect().postMessage({
+			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
+		});
+		document.getElementById(SELECTORS.woltor_tracking_button).remove();
+	};
+
+	getTrackButtonAdditionalParams(tracking_button);
+};
+
+const createRestaurantPageTrackButtonImg = () => {
+	let img = document.createElement("img");
+	if (VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1) {
+		img.style.width = "16px";
+		img.style.height = "16px";
+		if (LANGUAGE === LANGUAGES.EN) {
+			img.style.marginInlineEnd = "0.75rem";
+		} else {
+			img.style.marginLeft = "10px";
+		}
+		img.src = chrome.runtime.getURL("bell.png");
+	} else {
+		img.style.width = "14px";
+		img.style.height = "14px";
+		if (LANGUAGE === LANGUAGES.EN) {
+			img.style.marginInline = "0px 0.5rem";
+		} else {
+			img.style.marginLeft = "10px";
+		}
+		img.src = chrome.runtime.getURL("blue_bell.png");
+	}
+
+	return img;
+};
+
+const createContinerDiv = (className) => {
+	const continer = document.createElement("div");
+	continer.setAttribute("class", className);
+	return continer;
+};
+
+const getTrackButtonAdditionalParams = (tracking_button) => {
+	if (VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V2) {
+		const order_together_button_parent = document.querySelector(
+			V2_SELECTORS.order_together_button_parent
+		);
+		const continer = createContinerDiv(
+			order_together_button_parent.children[0].className
+		);
+		tracking_button.innerHTML =
+			order_together_button_parent.children[1].innerHTML;
+		tracking_button.className =
+			order_together_button_parent.children[1].className;
+		tracking_button.children[0].innerText = TEXTS.tracking_button[LANGUAGE];
+		if (LANGUAGE === LANGUAGES.EN) {
+			tracking_button.style.marginRight = "16px";
+			tracking_button.style.marginLeft = "0px";
+		} else {
+			tracking_button.style.marginLeft = "16px";
+		}
+		continer.appendChild(tracking_button);
+		continer.appendChild(order_together_button_parent.children[1]);
+		order_together_button_parent.appendChild(continer);
+	} else {
+		const favoriteButton =
+			LANGUAGE === LANGUAGES.HE
+				? document.querySelector(V1_SELECTORS.HE_favorite_button)
+				: document.querySelector(V1_SELECTORS.EN_favorite_button);
 		tracking_button.innerHTML = favoriteButton.innerHTML;
 		tracking_button.className = favoriteButton.className;
-		if (document.querySelector(SELECTORS.order_together_button)) {
+		tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
+		tracking_button.childNodes[0].remove();
+		if (document.querySelector(V1_SELECTORS.order_together_button)) {
 			if (LANGUAGE === LANGUAGES.EN) {
 				tracking_button.style.marginLeft = "16px";
 				tracking_button.style.marginRight = "0px";
@@ -251,29 +368,24 @@ const createTrackButton = () => {
 				tracking_button.style.marginRight = "16px";
 			}
 		}
-		tracking_button.style.fontSize = "1erm";
-		tracking_button.style.display = "flex";
-		tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
-		tracking_button.childNodes[0].remove();
-		tracking_button.onclick = () => {
-			chrome.runtime.connect().postMessage({
-				title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-				body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
-			});
-			document.getElementById("tracking_button").remove();
-		};
-		let img = document.createElement("img");
-		img.style.width = "16px";
-		img.style.height = "16px";
-		if (LANGUAGE === LANGUAGES.EN) {
-			img.style.marginRight = "12px";
-		} else {
-			img.style.marginLeft = "12px";
-		}
-		img.src = chrome.runtime.getURL("bell.png");
-
-		tracking_button.insertBefore(img, tracking_button.firstChild);
 		favoriteButton.parentNode.appendChild(tracking_button);
+	}
+	const img = createRestaurantPageTrackButtonImg();
+	tracking_button.insertBefore(img, tracking_button.firstChild);
+};
+
+const getVenuePageVersion = () => {
+	return document.querySelector(V2_SELECTORS.order_together_button_parent) ===
+		null
+		? VENUE_PAGE_VERSIONS.V1
+		: VENUE_PAGE_VERSIONS.V2;
+};
+
+const createTrackButton = () => {
+	if (!document.getElementById(V2_SELECTORS.woltor_tracking_button)) {
+		VENUE_PAGE_VERSION = getVenuePageVersion();
+		LANGUAGE = getLanguage();
+		createButton();
 	}
 };
 
@@ -314,7 +426,7 @@ const createVenueCrardTrackBottonImg = () => {
 };
 
 const createVenueCrardTrackBotton = (restaurantURL) => {
-	const language = getLanguage();
+	LANGUAGE = getLanguage();
 	const tracking_button = document.createElement("div");
 	tracking_button.id = "venueButton";
 	tracking_button.style.position = "relative";
@@ -348,7 +460,7 @@ const createVenueCrardTrackBotton = (restaurantURL) => {
 
 const createVenueButtonToggle = () => {
 	const trackingAvailableToggle = document.createElement("div");
-	trackingAvailableToggle.innerText = TEXTS.tracking_button.EN;
+	trackingAvailableToggle.innerText = TEXTS.tracking_button[LANGUAGE];
 	trackingAvailableToggle.id = "trackingAvailableToggle";
 	trackingAvailableToggle.style.position = "fixed";
 	trackingAvailableToggle.style.fontSize = "small";
@@ -372,7 +484,9 @@ const venueCardButtonMetaData = (restaurantElement) => {
 	const restaurantMainElement =
 		restaurantElement.parentElement.parentElement.parentElement.parentElement
 			.parentElement;
-	const isbottonexist = restaurantMainElement.querySelector("#venueButton");
+	const isButtonExist = restaurantMainElement.querySelector(
+		SELECTORS.woltor_venue_button
+	);
 	const restaurantURL = `https://wolt.com${restaurantMainElement.getAttribute(
 		"href"
 	)}`;
@@ -382,23 +496,30 @@ const venueCardButtonMetaData = (restaurantElement) => {
 			.length < 1;
 	return {
 		restaurantMainElement,
-		isbottonexist,
+		isButtonExist,
 		restaurantURL,
 		slug,
 		restaurantSlugLength,
 	};
 };
 
-const getTemporarilyOfflineRestaurants = () => {
+const getTemporarilyOfflineAndClosedRestaurants = () => {
 	const restaurantsFromVenueCard = document.querySelectorAll(
-		'[data-test-id^="venueCard."]'
+		SELECTORS.restaurants_from_venue_card
 	);
 	const temporarily_offline_restaurants = [];
 	restaurantsFromVenueCard.forEach((restaurant) => {
 		const temporarily_offline_element = restaurant.querySelector("p");
 		if (
-			temporarily_offline_element.innerText === "Temporarily offline" ||
-			temporarily_offline_element.innerText === "Closed"
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.temporarilyOffline) ||
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.closed) ||
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.HE_closed_and_temporarilyOffline)
 		) {
 			temporarily_offline_restaurants.push(temporarily_offline_element);
 		}
@@ -407,16 +528,21 @@ const getTemporarilyOfflineRestaurants = () => {
 };
 
 const createButtonOnVenueCard = () => {
-	const temporarily_offline_restaurants = getTemporarilyOfflineRestaurants();
+	const temporarily_offline_restaurants =
+		getTemporarilyOfflineAndClosedRestaurants();
 	if (temporarily_offline_restaurants) {
 		temporarily_offline_restaurants.forEach((restaurantElement) => {
 			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
 
-			if (!buttonMetaData.isbottonexist) {
+			if (!buttonMetaData.isButtonExist) {
 				if (
 					buttonMetaData.restaurantSlugLength &&
-					(restaurantElement.innerHTML === "Temporarily offline" ||
-						restaurantElement.innerHTML === "Closed")
+					(restaurantElement.innerHTML.toLowerCase() ===
+						RESTAURANT_STATUS.temporarilyOffline ||
+						restaurantElement.innerHTML.toLowerCase() ===
+							RESTAURANT_STATUS.closed ||
+						restaurantElement.innerText ===
+							RESTAURANT_STATUS.HE_closed_and_temporarilyOffline)
 				) {
 					const trackBottonContainer = createVenueCrardTrackBottonContainer();
 					const tracking_button = createVenueCrardTrackBotton(
@@ -429,11 +555,22 @@ const createButtonOnVenueCard = () => {
 					restaurantElement.appendChild(trackBottonContainer);
 				}
 			} else if (
-				buttonMetaData.isbottonexist.style.display === "none" &&
+				buttonMetaData.isButtonExist.style.display === DISPLAY.none &&
 				TRACKED_RESTAURANTS.restaurant_details.slug === buttonMetaData.slug
 			) {
-				buttonMetaData.isbottonexist.style.display = "block";
+				buttonMetaData.isButtonExist.style.display = DISPLAY.block;
 			}
 		});
 	}
 };
+
+const createSearchBarButton = () => {
+	const searchBar = document.createElement("input");
+	searchBar.addEventListener("input", () => {
+		const searchResult = document.querySelectorAll(
+			SELECTORS.search_result_item
+		);
+	});
+};
+
+window.document.addEventListener("DOMContentLoaded", createSearchBarButton());
