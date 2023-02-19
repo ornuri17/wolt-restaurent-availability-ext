@@ -47,17 +47,24 @@ const NOTFICATIONS_MESSAGES = {
 	},
 };
 
-const SELECTORS = {
-	favorite_button: "button[aria-label='Favorite']",
-	order_together_button_parent_v2:
-		"div[data-test-id='venue-content-header.root'] > div > div > div",
-	v1_order_together_button: "a[data-test-id='GroupOrderButton.Link']",
-	temporarily_offline_and_closed_restaurants:
-		"p[class^='VenueCard__OverlayText']",
-	venue_button: "#venueButton",
-	tracking_button: "tracking_button",
+const V1_SELECTORS = {
+	EN_favorite_button: "button[aria-label='Favorite']",
+	HE_favorite_button: "button[aria-label='מועדפים']",
+	order_together_button: "a[data-test-id='GroupOrderButton.Link']",
 	search_input: "input[class^='sc-1web0kr-2']",
 	search_result_item: "p[class^='SearchResultItem__OverlayText']",
+};
+
+const V2_SELECTORS = {
+	order_together_button_parent:
+		"div[data-test-id='venue-content-header.root'] > div > div > div",
+};
+
+//this "SELECTORS" is work for v1 & v2
+const SELECTORS = {
+	restaurants_from_venue_card: "[data-test-id^='venueCard.']",
+	woltor_venue_button: "#venueButton",
+	woltor_tracking_button: "tracking_button",
 };
 
 const RESTAURANT_STATUS = {
@@ -210,14 +217,26 @@ chrome.runtime.onMessage.addListener((msg) => {
 		msg.body.restaurant_details
 	) {
 		LANGUAGE = getLanguage();
-		let favoriteButton = document.querySelector(SELECTORS.favorite_button);
-		if (!favoriteButton) {
+		VENUE_PAGE_VERSION = getVenuePageVersion();
+		let ButtonToCheckByVersion =
+			VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1
+				? LANGUAGE === LANGUAGES.HE
+					? document.querySelector(V1_SELECTORS.HE_favorite_button)
+					: document.querySelector(V1_SELECTORS.EN_favorite_button)
+				: document.querySelector(V2_SELECTORS.order_together_button_parent);
+
+		if (!ButtonToCheckByVersion) {
 			observer = new MutationObserver((mutations) => {
 				/*
         this button below should be available first on restaurant page in wolt.com
         so here we wait for its creation to create a compatible wolt.com site button
         */
-				favoriteButton = document.querySelector(SELECTORS.favorite_button);
+				ButtonToCheckByVersion =
+					VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1
+						? LANGUAGE === LANGUAGES.HE
+							? document.querySelector(V1_SELECTORS.HE_favorite_button)
+							: document.querySelector(V1_SELECTORS.EN_favorite_button)
+						: document.querySelector(V2_SELECTORS.order_together_button_parent);
 				if (favoriteButton) {
 					observer.disconnect();
 					createTrackButton();
@@ -273,7 +292,7 @@ const createButton = () => {
 			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
 			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
 		});
-		document.getElementById(SELECTORS.tracking_button).remove();
+		document.getElementById(SELECTORS.woltor_tracking_button).remove();
 	};
 
 	getTrackButtonAdditionalParams(tracking_button);
@@ -281,14 +300,26 @@ const createButton = () => {
 
 const createRestaurantPageTrackButtonImg = () => {
 	let img = document.createElement("img");
-	img.style.width = "14px";
-	img.style.height = "14px";
-	if (LANGUAGE === LANGUAGES.EN) {
-		img.style.marginInline = "0px 0.5rem";
+	if (VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1) {
+		img.style.width = "16px";
+		img.style.height = "16px";
+		if (LANGUAGE === LANGUAGES.EN) {
+			img.style.marginInlineEnd = "0.75rem";
+		} else {
+			img.style.marginLeft = "10px";
+		}
+		img.src = chrome.runtime.getURL("bell.png");
 	} else {
-		img.style.marginLeft = "10px";
+		img.style.width = "14px";
+		img.style.height = "14px";
+		if (LANGUAGE === LANGUAGES.EN) {
+			img.style.marginInline = "0px 0.5rem";
+		} else {
+			img.style.marginLeft = "10px";
+		}
+		img.src = chrome.runtime.getURL("blue_bell.png");
 	}
-	img.src = chrome.runtime.getURL("blue_bell.png");
+
 	return img;
 };
 
@@ -300,16 +331,16 @@ const createContinerDiv = (className) => {
 
 const getTrackButtonAdditionalParams = (tracking_button) => {
 	if (VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V2) {
-		const order_together_button_parent_v2 = document.querySelector(
-			SELECTORS.order_together_button_parent_v2
+		const order_together_button_parent = document.querySelector(
+			V2_SELECTORS.order_together_button_parent
 		);
 		const continer = createContinerDiv(
-			order_together_button_parent_v2.children[0].className
+			order_together_button_parent.children[0].className
 		);
 		tracking_button.innerHTML =
-			order_together_button_parent_v2.children[1].innerHTML;
+			order_together_button_parent.children[1].innerHTML;
 		tracking_button.className =
-			order_together_button_parent_v2.children[1].className;
+			order_together_button_parent.children[1].className;
 		tracking_button.children[0].innerText = TEXTS.tracking_button[LANGUAGE];
 		if (LANGUAGE === LANGUAGES.EN) {
 			tracking_button.style.marginRight = "16px";
@@ -318,15 +349,18 @@ const getTrackButtonAdditionalParams = (tracking_button) => {
 			tracking_button.style.marginLeft = "16px";
 		}
 		continer.appendChild(tracking_button);
-		continer.appendChild(order_together_button_parent_v2.children[1]);
-		order_together_button_parent_v2.appendChild(continer);
+		continer.appendChild(order_together_button_parent.children[1]);
+		order_together_button_parent.appendChild(continer);
 	} else {
-		const favoriteButton = document.querySelector(SELECTORS.favorite_button);
+		const favoriteButton =
+			LANGUAGE === LANGUAGES.HE
+				? document.querySelector(V1_SELECTORS.HE_favorite_button)
+				: document.querySelector(V1_SELECTORS.EN_favorite_button);
 		tracking_button.innerHTML = favoriteButton.innerHTML;
 		tracking_button.className = favoriteButton.className;
 		tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
 		tracking_button.childNodes[0].remove();
-		if (document.querySelector(SELECTORS.v1_order_together_button)) {
+		if (document.querySelector(V1_SELECTORS.order_together_button)) {
 			if (LANGUAGE === LANGUAGES.EN) {
 				tracking_button.style.marginLeft = "16px";
 				tracking_button.style.marginRight = "0px";
@@ -341,14 +375,14 @@ const getTrackButtonAdditionalParams = (tracking_button) => {
 };
 
 const getVenuePageVersion = () => {
-	return document.querySelector(SELECTORS.order_together_button_parent_v2) ===
+	return document.querySelector(V2_SELECTORS.order_together_button_parent) ===
 		null
 		? VENUE_PAGE_VERSIONS.V1
 		: VENUE_PAGE_VERSIONS.V2;
 };
 
 const createTrackButton = () => {
-	if (!document.getElementById(SELECTORS.tracking_button)) {
+	if (!document.getElementById(V2_SELECTORS.woltor_tracking_button)) {
 		VENUE_PAGE_VERSION = getVenuePageVersion();
 		LANGUAGE = getLanguage();
 		createButton();
@@ -451,7 +485,7 @@ const venueCardButtonMetaData = (restaurantElement) => {
 		restaurantElement.parentElement.parentElement.parentElement.parentElement
 			.parentElement;
 	const isButtonExist = restaurantMainElement.querySelector(
-		SELECTORS.venue_button
+		SELECTORS.woltor_venue_button
 	);
 	const restaurantURL = `https://wolt.com${restaurantMainElement.getAttribute(
 		"href"
@@ -469,16 +503,23 @@ const venueCardButtonMetaData = (restaurantElement) => {
 	};
 };
 
-const getTemporarilyOfflineRestaurants = () => {
+const getTemporarilyOfflineAndClosedRestaurants = () => {
 	const restaurantsFromVenueCard = document.querySelectorAll(
-		'[data-test-id^="venueCard."]'
+		SELECTORS.restaurants_from_venue_card
 	);
 	const temporarily_offline_restaurants = [];
 	restaurantsFromVenueCard.forEach((restaurant) => {
 		const temporarily_offline_element = restaurant.querySelector("p");
 		if (
-			temporarily_offline_element.innerText === "Temporarily offline" ||
-			temporarily_offline_element.innerText === "Closed"
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.temporarilyOffline) ||
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.closed) ||
+			temporarily_offline_element.innerText
+				.toLowerCase()
+				.includes(RESTAURANT_STATUS.HE_closed_and_temporarilyOffline)
 		) {
 			temporarily_offline_restaurants.push(temporarily_offline_element);
 		}
@@ -487,7 +528,8 @@ const getTemporarilyOfflineRestaurants = () => {
 };
 
 const createButtonOnVenueCard = () => {
-	const temporarily_offline_restaurants = getTemporarilyOfflineRestaurants();
+	const temporarily_offline_restaurants =
+		getTemporarilyOfflineAndClosedRestaurants();
 	if (temporarily_offline_restaurants) {
 		temporarily_offline_restaurants.forEach((restaurantElement) => {
 			const buttonMetaData = venueCardButtonMetaData(restaurantElement);
