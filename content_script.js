@@ -27,7 +27,14 @@ const LANGUAGES = {
 	HE: "HE",
 	EN: "EN",
 };
+
+const VENUE_PAGE_VERSIONS = {
+	V1: "V1",
+	V2: "V2",
+};
+
 let LANGUAGE;
+let VENUE_PAGE_VERSION;
 let TRACKED_RESTAURANTS = [];
 
 const NOTFICATIONS_MESSAGES = {
@@ -42,7 +49,7 @@ const NOTFICATIONS_MESSAGES = {
 
 const SELECTORS = {
 	favorite_button: "button[aria-label='Favorite']",
-	order_together_parent:
+	order_together_button_parent_v2:
 		"div[data-test-id='venue-content-header.root'] > div > div > div",
 	v1_order_together_button: "a[data-test-id='GroupOrderButton.Link']",
 	temporarily_offline_and_closed_restaurants:
@@ -254,24 +261,13 @@ chrome.runtime.onMessage.addListener((msg) => {
 	}
 });
 
-const createButtonV1 = () => {
-	let tracking_button = document.createElement("button");
-	const favoriteButton = document.querySelector(SELECTORS.favorite_button);
-	tracking_button.id = SELECTORS.tracking_button;
-	tracking_button.innerHTML = favoriteButton.innerHTML;
-	tracking_button.className = favoriteButton.className;
-	if (document.querySelector(SELECTORS.order_together_parent)) {
-		if (LANGUAGE === LANGUAGES.EN) {
-			tracking_button.style.marginLeft = "16px";
-			tracking_button.style.marginRight = "0px";
-		} else {
-			tracking_button.style.marginRight = "16px";
-		}
-	}
-	tracking_button.style.fontSize = "1erm";
+const createButton = () => {
+	let tracking_button = document.createElement(
+		VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1 ? "button" : "div"
+	);
+
+	tracking_button.style.fontSize = "1rem";
 	tracking_button.style.display = "flex";
-	tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
-	tracking_button.childNodes[0].remove();
 	tracking_button.onclick = () => {
 		chrome.runtime.connect().postMessage({
 			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
@@ -279,58 +275,83 @@ const createButtonV1 = () => {
 		});
 		document.getElementById(SELECTORS.tracking_button).remove();
 	};
-	let img = document.createElement("img");
-	img.style.width = "16px";
-	img.style.height = "16px";
-	if (LANGUAGE === LANGUAGES.EN) {
-		img.style.marginRight = "12px";
-	} else {
-		img.style.marginLeft = "12px";
-	}
-	img.src = chrome.runtime.getURL("bell.png");
 
-	tracking_button.insertBefore(img, tracking_button.firstChild);
-	favoriteButton.parentNode.appendChild(tracking_button);
+	getTrackButtonAdditionalParams(tracking_button);
 };
 
-const createButtonV2 = () => {
-	let tracking_button = document.createElement("button");
-	const order_together_button_v2 = document.querySelector(
-		SELECTORS.order_together_parent
-	).children[1];
-	tracking_button.id = SELECTORS.tracking_button;
-	tracking_button.innerHTML = order_together_button_v2.innerHTML;
-	tracking_button.className = order_together_button_v2.className;
-	tracking_button.childNodes[0].innerHTML = TEXTS.tracking_button[LANGUAGE];
-	tracking_button.onclick = () => {
-		chrome.runtime.connect().postMessage({
-			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
-		});
-		document.getElementById(SELECTORS.tracking_button).remove();
-	};
+const createRestaurantPageTrackButtonImg = () => {
 	let img = document.createElement("img");
-	img.style.width = "16px";
-	img.style.height = "16px";
+	img.style.width = "14px";
+	img.style.height = "14px";
 	if (LANGUAGE === LANGUAGES.EN) {
-		img.style.marginRight = "12px";
+		img.style.marginInline = "0px 0.5rem";
 	} else {
-		img.style.marginLeft = "12px";
+		img.style.marginLeft = "10px";
 	}
-	img.src = chrome.runtime.getURL("bell.png");
+	img.src = chrome.runtime.getURL("blue_bell.png");
+	return img;
+};
 
+const createContinerDiv = (className) => {
+	const continer = document.createElement("div");
+	continer.setAttribute("class", className);
+	return continer;
+};
+
+const getTrackButtonAdditionalParams = (tracking_button) => {
+	if (VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V2) {
+		const order_together_button_parent_v2 = document.querySelector(
+			SELECTORS.order_together_button_parent_v2
+		);
+		const continer = createContinerDiv(
+			order_together_button_parent_v2.children[0].className
+		);
+		tracking_button.innerHTML =
+			order_together_button_parent_v2.children[1].innerHTML;
+		tracking_button.className =
+			order_together_button_parent_v2.children[1].className;
+		tracking_button.children[0].innerText = TEXTS.tracking_button[LANGUAGE];
+		if (LANGUAGE === LANGUAGES.EN) {
+			tracking_button.style.marginRight = "16px";
+			tracking_button.style.marginLeft = "0px";
+		} else {
+			tracking_button.style.marginLeft = "16px";
+		}
+		continer.appendChild(tracking_button);
+		continer.appendChild(order_together_button_parent_v2.children[1]);
+		order_together_button_parent_v2.appendChild(continer);
+	} else {
+		const favoriteButton = document.querySelector(SELECTORS.favorite_button);
+		tracking_button.innerHTML = favoriteButton.innerHTML;
+		tracking_button.className = favoriteButton.className;
+		tracking_button.childNodes[1].innerHTML = TEXTS.tracking_button[LANGUAGE];
+		tracking_button.childNodes[0].remove();
+		if (document.querySelector(SELECTORS.v1_order_together_button)) {
+			if (LANGUAGE === LANGUAGES.EN) {
+				tracking_button.style.marginLeft = "16px";
+				tracking_button.style.marginRight = "0px";
+			} else {
+				tracking_button.style.marginRight = "16px";
+			}
+		}
+		favoriteButton.parentNode.appendChild(tracking_button);
+	}
+	const img = createRestaurantPageTrackButtonImg();
 	tracking_button.insertBefore(img, tracking_button.firstChild);
-	order_together_button_v2.parentNode.appendChild(tracking_button);
+};
+
+const getVenuePageVersion = () => {
+	return document.querySelector(SELECTORS.order_together_button_parent_v2) ===
+		null
+		? VENUE_PAGE_VERSIONS.V1
+		: VENUE_PAGE_VERSIONS.V2;
 };
 
 const createTrackButton = () => {
 	if (!document.getElementById(SELECTORS.tracking_button)) {
+		VENUE_PAGE_VERSION = getVenuePageVersion();
 		LANGUAGE = getLanguage();
-		if (document.querySelector(SELECTORS.order_together_parent) === null) {
-			createButtonV1();
-		} else {
-			createButtonV2();
-		}
+		createButton();
 	}
 };
 

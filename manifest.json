@@ -19,7 +19,7 @@
 	"web_accessible_resources": [
 		{
 			"resources": [
-				"bell.png",
+				"blue_bell.png",
 				"googleAnalytics.js",
 				"grey-bell.png",
 				"service_bell_ring.mp3"
