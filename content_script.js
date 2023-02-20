@@ -281,21 +281,23 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 const createButton = () => {
-	let tracking_button = document.createElement(
-		VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1 ? "button" : "div"
-	);
+	if (!document.getElementById(SELECTORS.woltor_tracking_button)) {
+		let tracking_button = document.createElement(
+			VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1 ? "button" : "div"
+		);
+		tracking_button.id = SELECTORS.woltor_tracking_button;
+		tracking_button.style.fontSize = "1rem";
+		tracking_button.style.display = "flex";
+		tracking_button.onclick = () => {
+			chrome.runtime.connect().postMessage({
+				title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
+				body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
+			});
+			document.getElementById(SELECTORS.woltor_tracking_button).remove();
+		};
 
-	tracking_button.style.fontSize = "1rem";
-	tracking_button.style.display = "flex";
-	tracking_button.onclick = () => {
-		chrome.runtime.connect().postMessage({
-			title: MESSAGE_TITLES.sending.to_background.add_tracked_restaurant,
-			body: { url: window.location.href, lang: LANGUAGE.toLowerCase() },
-		});
-		document.getElementById(SELECTORS.woltor_tracking_button).remove();
-	};
-
-	getTrackButtonAdditionalParams(tracking_button);
+		getTrackButtonAdditionalParams(tracking_button);
+	}
 };
 
 const createRestaurantPageTrackButtonImg = () => {
