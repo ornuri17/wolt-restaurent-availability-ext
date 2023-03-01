@@ -317,8 +317,8 @@ chrome.runtime.onConnect.addListener((port) => {
 		) {
 			const restaurant_details = await canTrackAvailablity(msg.body.url);
 			if (
-				restaurant_details ||
-				(restaurant_details.open && !restaurant_details.online)
+				restaurant_details &&
+				(!restaurant_details.open || !restaurant_details.online)
 			) {
 				sendMessageToContentScript(
 					MESSAGE_TITLES.sending.to_content_script.create_track_button,
