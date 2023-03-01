@@ -284,7 +284,7 @@ const createButton = () => {
 	let tracking_button = document.createElement(
 		VENUE_PAGE_VERSION === VENUE_PAGE_VERSIONS.V1 ? "button" : "div"
 	);
-
+	tracking_button.setAttribute("id", SELECTORS.woltor_tracking_button);
 	tracking_button.style.fontSize = "1rem";
 	tracking_button.style.display = "flex";
 	tracking_button.onclick = () => {
