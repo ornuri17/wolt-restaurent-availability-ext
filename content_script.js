@@ -480,10 +480,11 @@ const VenueCrardTrackBottonHandleClick = (restaurantURL) => {
 	});
 };
 
-const venueCardButtonMetaData = (restaurantElement) => {
-	const restaurantMainElement =
-		restaurantElement.parentElement.parentElement.parentElement.parentElement
-			.parentElement;
+const venueCardButtonMetaData = (restaurantElement, isVenue = true) => {
+	const restaurantMainElement = isVenue
+		? restaurantElement.parentElement.parentElement.parentElement.parentElement
+				.parentElement
+		: restaurantElement.parentElement.parentElement.parentElement;
 	const isButtonExist = restaurantMainElement.querySelector(
 		SELECTORS.woltor_venue_button
 	);
@@ -564,13 +565,50 @@ const createButtonOnVenueCard = () => {
 	}
 };
 
-const createSearchBarButton = () => {
-	const searchBar = document.createElement("input");
-	searchBar.addEventListener("input", () => {
-		const searchResult = document.querySelectorAll(
-			SELECTORS.search_result_item
-		);
-	});
+const createSearchBarButton = (search_result_items_array) => {
+	debugger;
+	const temporarily_offline_restaurants =
+		getTemporarilyOfflineAndClosedRestaurants(search_result_items_array);
+	if (temporarily_offline_restaurants) {
+		temporarily_offline_restaurants.forEach((restaurantElement) => {
+			const buttonMetaData = venueCardButtonMetaData(restaurantElement, false);
+
+			if (!buttonMetaData.isButtonExist) {
+				if (
+					buttonMetaData.restaurantSlugLength &&
+					(restaurantElement.innerHTML.toLowerCase() ===
+						RESTAURANT_STATUS.temporarilyOffline ||
+						restaurantElement.innerHTML.toLowerCase() ===
+							RESTAURANT_STATUS.closed ||
+						restaurantElement.innerText ===
+							RESTAURANT_STATUS.HE_closed_and_temporarilyOffline)
+				) {
+					const trackBottonContainer = createVenueCrardTrackBottonContainer();
+					const tracking_button = createVenueCrardTrackBotton(
+						buttonMetaData.restaurantURL
+					);
+					const tracking_img = createVenueCrardTrackBottonImg();
+
+					tracking_button.appendChild(tracking_img);
+					trackBottonContainer.appendChild(tracking_button);
+					restaurantElement.appendChild(trackBottonContainer);
+				}
+			} else if (
+				buttonMetaData.isButtonExist.style.display === DISPLAY.none &&
+				TRACKED_RESTAURANTS.restaurant_details.slug === buttonMetaData.slug
+			) {
+				buttonMetaData.isButtonExist.style.display = DISPLAY.block;
+			}
+		});
+	}
+	console.log("func:", search_result_items_array);
 };
 
-window.document.addEventListener("DOMContentLoaded", createSearchBarButton());
+document.querySelector(V2_SELECTORS.search_input).oninput = () => {
+	setTimeout(() => {
+		const searchResultListItem = document.querySelector(
+			V2_SELECTORS.search_result_list_item
+		);
+		createSearchBarButton(searchResultListItem.childNodes);
+	}, 2000);
+};
